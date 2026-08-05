@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 .DS_Store
+.next
+coverage
+AGENTS.md
+PLAN.md

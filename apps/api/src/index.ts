@@ -1,18 +1,6 @@
-import Fastify from "fastify";
-
+import { buildApp } from "./app.js";
 const port = Number(process.env.PORT ?? 3001);
-
-const app = Fastify({
-  logger: true,
-});
-
-app.get("/health", async () => {
-  return {
-    status: "ok",
-    service: "pr-api",
-    timestamp: new Date().toISOString(),
-  };
-});
+const app = buildApp();
 
 const start = async () => {
   try {

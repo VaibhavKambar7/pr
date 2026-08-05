@@ -2,23 +2,19 @@
   "name": "pr",
   "version": "0.1.0",
   "private": true,
-  "description": "Interview-worthy prompt infrastructure backend scaffold",
-  "main": "dist/index.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "fastify": "^5.4.0"
-  },
-  "devDependencies": {
-    "@types/node": "^24.3.0",
-    "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
+    "dev": "npm run dev --workspace api",
+    "dev:api": "npm run dev --workspace api",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspace api && npm run build --workspace web",
+    "build:api": "npm run build --workspace api",
+    "build:web": "npm run build --workspace web",
+    "typecheck": "npm run typecheck --workspace api && npm run typecheck --workspace web",
+    "typecheck:api": "npm run typecheck --workspace api",
+    "typecheck:web": "npm run typecheck --workspace web"
   }
 }
