@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PromptVersionStatus {
+  DRAFT
+  LIVE
+  ARCHIVED
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  name         String?
+  projects     Project[]
+  apiKeys      ApiKey[]
+  executions   Execution[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Project {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  ownerId     String
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  prompts     Prompt[]
+  apiKeys     ApiKey[]
+  executions  Execution[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([ownerId, slug])
+  @@index([ownerId])
+}
+
+model Prompt {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  versions    PromptVersion[]
+  executions  Execution[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+}
+
+model PromptVersion {
+  id          String              @id @default(cuid())
+  promptId    String
+  prompt      Prompt              @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  version     Int
+  status      PromptVersionStatus @default(DRAFT)
+  template    String
+  model       String?
+  modelParams Json?
+  executions  Execution[]
+  createdAt   DateTime            @default(now())
+  promotedAt  DateTime?
+  archivedAt  DateTime?
+
+  @@unique([promptId, version])
+  @@index([promptId, status])
+}
+
+model ApiKey {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  name        String
+  keyHash     String      @unique
+  prefix      String
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  executions  Execution[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([projectId])
+  @@index([createdById])
+}
+
+model Execution {
+  id              String         @id @default(cuid())
+  projectId       String
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  promptId        String
+  prompt          Prompt         @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  promptVersionId String
+  promptVersion   PromptVersion  @relation(fields: [promptVersionId], references: [id], onDelete: Cascade)
+  apiKeyId        String?
+  apiKey          ApiKey?         @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  variables       Json
+  renderedPrompt  String
+  output          String?
+  latencyMs       Int?
+  promptTokens    Int?
+  completionTokens Int?
+  totalTokens     Int?
+  costUsd         Decimal?        @db.Decimal(10, 6)
+  error           String?
+  createdAt       DateTime        @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([promptId, createdAt])
+  @@index([apiKeyId])
+  @@index([userId])
+}
