@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { loginUser, registerUser } from "./auth.service.js";
+import { getAuthenticatedUser, loginUser, registerUser } from "./auth.service.js";
 import { loginSchema, registerSchema } from "./auth.schema.js";
+import "./auth.types.js";
 
 export async function registerController(request: FastifyRequest, reply: FastifyReply) {
   const parsedBody = registerSchema.safeParse(request.body);
@@ -13,9 +14,9 @@ export async function registerController(request: FastifyRequest, reply: Fastify
   }
 
   try {
-    const user = await registerUser(parsedBody.data);
+    const result = await registerUser(parsedBody.data);
 
-    return reply.code(201).send({ user });
+    return reply.code(201).send(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "registration failed";
     const statusCode = message === "user already exists" ? 409 : 500;
@@ -35,10 +36,24 @@ export async function loginController(request: FastifyRequest, reply: FastifyRep
   }
 
   try {
-    const user = await loginUser(parsedBody.data);
+    const result = await loginUser(parsedBody.data);
 
-    return reply.code(200).send({ user });
+    return reply.code(200).send(result);
   } catch {
     return reply.code(401).send({ error: "invalid email or password" });
   }
+}
+
+export async function meController(request: FastifyRequest, reply: FastifyReply) {
+  if (!request.user) {
+    return reply.code(401).send({ error: "unauthorized" });
+  }
+
+  const user = await getAuthenticatedUser(request.user.id);
+
+  if (!user) {
+    return reply.code(404).send({ error: "user not found" });
+  }
+
+  return reply.code(200).send({ user });
 }

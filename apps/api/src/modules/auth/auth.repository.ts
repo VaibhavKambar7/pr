@@ -23,3 +23,18 @@ export async function createUser(user: CreateUserInput) {
     },
   });
 }
+
+export async function findUserById(id: string) {
+  return prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
