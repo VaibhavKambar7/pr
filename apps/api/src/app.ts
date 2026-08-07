@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { prisma } from "@pr/database";
+import { authRoutes } from "./modules/auth/auth.routes.js";
 
 export const buildApp = () => {
   const app = Fastify({
@@ -22,6 +23,8 @@ export const buildApp = () => {
       timestamp: new Date().toISOString(),
     };
   });
+
+  void app.register(authRoutes, { prefix: "/auth" });
 
   return app;
 };
