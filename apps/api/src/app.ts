@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { prisma } from "@pr/database";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { projectRoutes } from "./modules/projects/project.routes.js";
+import { promptVersionRoutes } from "./modules/prompt-versions/prompt-version.routes.js";
 import { promptRoutes } from "./modules/prompts/prompt.routes.js";
 
 export const buildApp = () => {
@@ -29,6 +30,7 @@ export const buildApp = () => {
   void app.register(authRoutes, { prefix: "/auth" });
   void app.register(projectRoutes, { prefix: "/projects" });
   void app.register(promptRoutes, { prefix: "/projects" });
+  void app.register(promptVersionRoutes, { prefix: "/projects" });
 
   return app;
 };

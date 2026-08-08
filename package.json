@@ -16,5 +16,8 @@
     "typecheck": "npm run typecheck --workspace api && npm run typecheck --workspace web",
     "typecheck:api": "npm run typecheck --workspace api",
     "typecheck:web": "npm run typecheck --workspace web"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0"
   }
 }
