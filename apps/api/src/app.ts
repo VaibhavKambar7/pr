@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { prisma } from "@pr/database";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { projectRoutes } from "./modules/projects/project.routes.js";
 
 export const buildApp = () => {
   const app = Fastify({
@@ -25,6 +26,7 @@ export const buildApp = () => {
   });
 
   void app.register(authRoutes, { prefix: "/auth" });
+  void app.register(projectRoutes, { prefix: "/projects" });
 
   return app;
 };
