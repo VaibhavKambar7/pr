@@ -1,4 +1,4 @@
-import { prisma } from "@pr/database";
+import { PromptVersionStatus, prisma } from "@pr/database";
 import type { CreatePromptVersionInput } from "./prompt-version.schema.js";
 
 type CreatePromptVersionRecordInput = CreatePromptVersionInput & {
@@ -58,5 +58,34 @@ export async function findPromptVersion(input: PromptVersionIdentity) {
         version: input.version,
       },
     },
+  });
+}
+
+export async function promotePromptVersion(input: PromptVersionIdentity) {
+  return prisma.$transaction(async (tx) => {
+    await tx.promptVersion.updateMany({
+      where: {
+        promptId: input.promptId,
+        status: PromptVersionStatus.LIVE,
+      },
+      data: {
+        status: PromptVersionStatus.DRAFT,
+        promotedAt: null,
+      },
+    });
+
+    return tx.promptVersion.update({
+      where: {
+        promptId_version: {
+          promptId: input.promptId,
+          version: input.version,
+        },
+      },
+      data: {
+        status: PromptVersionStatus.LIVE,
+        promotedAt: new Date(),
+        archivedAt: null,
+      },
+    });
   });
 }

@@ -4,6 +4,7 @@ import {
   findPromptVersion,
   getLatestPromptVersionNumber,
   listPromptVersions,
+  promotePromptVersion,
 } from "./prompt-version.repository.js";
 import type { CreatePromptVersionInput } from "./prompt-version.schema.js";
 
@@ -67,4 +68,46 @@ export async function getVersionForPrompt(
   }
 
   return promptVersion;
+}
+
+async function setLiveVersionForPrompt(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+  versionParam: string,
+) {
+  await getPromptForProject(ownerId, projectId, promptId);
+
+  const version = parseVersionNumber(versionParam);
+  const promptVersion = await findPromptVersion({
+    promptId,
+    version,
+  });
+
+  if (!promptVersion) {
+    throw new PromptVersionNotFoundError();
+  }
+
+  return promotePromptVersion({
+    promptId,
+    version,
+  });
+}
+
+export async function promoteVersionForPrompt(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+  versionParam: string,
+) {
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam);
+}
+
+export async function rollbackVersionForPrompt(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+  versionParam: string,
+) {
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam);
 }

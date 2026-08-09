@@ -8,6 +8,8 @@ import {
   createVersionForPrompt,
   getVersionForPrompt,
   listVersionsForPrompt,
+  promoteVersionForPrompt,
+  rollbackVersionForPrompt,
 } from "./prompt-version.service.js";
 import { createPromptVersionSchema } from "./prompt-version.schema.js";
 
@@ -121,6 +123,54 @@ export async function getPromptVersionController(
 
   try {
     const promptVersion = await getVersionForPrompt(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+      request.params.version,
+    );
+
+    return reply.code(200).send({ promptVersion });
+  } catch (error) {
+    return sendPromptVersionError(reply, error);
+  }
+}
+
+export async function promotePromptVersionController(
+  request: FastifyRequest<{ Params: PromptVersionParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const promptVersion = await promoteVersionForPrompt(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+      request.params.version,
+    );
+
+    return reply.code(200).send({ promptVersion });
+  } catch (error) {
+    return sendPromptVersionError(reply, error);
+  }
+}
+
+export async function rollbackPromptVersionController(
+  request: FastifyRequest<{ Params: PromptVersionParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const promptVersion = await rollbackVersionForPrompt(
       user.id,
       request.params.projectId,
       request.params.promptId,

@@ -4,6 +4,8 @@ import {
   createPromptVersionController,
   getPromptVersionController,
   listPromptVersionsController,
+  promotePromptVersionController,
+  rollbackPromptVersionController,
 } from "./prompt-version.controller.js";
 
 export async function promptVersionRoutes(app: FastifyInstance) {
@@ -12,4 +14,6 @@ export async function promptVersionRoutes(app: FastifyInstance) {
   app.post("/:projectId/prompts/:promptId/versions", createPromptVersionController);
   app.get("/:projectId/prompts/:promptId/versions", listPromptVersionsController);
   app.get("/:projectId/prompts/:promptId/versions/:version", getPromptVersionController);
+  app.post("/:projectId/prompts/:promptId/versions/:version/promote", promotePromptVersionController);
+  app.post("/:projectId/prompts/:promptId/versions/:version/rollback", rollbackPromptVersionController);
 }
