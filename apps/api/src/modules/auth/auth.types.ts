@@ -4,5 +4,9 @@ declare module "fastify" {
       id: string;
       email: string;
     };
+    apiKey?: {
+      id: string;
+      projectId: string;
+    };
   }
 }

@@ -1,6 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getProjectForUser } from "../projects/project.service.js";
-import { createApiKey, listApiKeysByProject, revokeApiKey } from "./api-key.repository.js";
+import {
+  createApiKey,
+  findActiveApiKeyByHash,
+  listApiKeysByProject,
+  revokeApiKey,
+  touchApiKeyLastUsedAt,
+} from "./api-key.repository.js";
 import type { CreateApiKeyInput } from "./api-key.schema.js";
 
 export class ApiKeyNotFoundError extends Error {
@@ -56,4 +62,16 @@ export async function revokeApiKeyForProject(ownerId: string, projectId: string,
   if (result.count === 0) {
     throw new ApiKeyNotFoundError();
   }
+}
+
+export async function verifyApiKey(rawKey: string) {
+  const apiKey = await findActiveApiKeyByHash(hashApiKey(rawKey));
+
+  if (!apiKey) {
+    return null;
+  }
+
+  await touchApiKeyLastUsedAt(apiKey.id);
+
+  return apiKey;
 }

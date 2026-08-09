@@ -9,18 +9,39 @@ type RuntimePromptParams = {
   promptId: string;
 };
 
+function getRuntimeContext(request: FastifyRequest, reply: FastifyReply) {
+  if (request.apiKey) {
+    return {
+      type: "apiKey" as const,
+      apiKeyId: request.apiKey.id,
+      projectId: request.apiKey.projectId,
+    };
+  }
+
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    type: "user" as const,
+    userId: user.id,
+  };
+}
+
 export async function getLivePromptVersionController(
   request: FastifyRequest<{ Params: RuntimePromptParams }>,
   reply: FastifyReply,
 ) {
-  const user = requireUser(request, reply);
+  const context = getRuntimeContext(request, reply);
 
-  if (!user) {
+  if (!context) {
     return;
   }
 
   try {
-    const result = await getLivePromptVersion(user.id, request.params.projectId, request.params.promptId);
+    const result = await getLivePromptVersion(context, request.params.projectId, request.params.promptId);
 
     return reply.code(200).send(result);
   } catch (error) {
@@ -32,9 +53,9 @@ export async function renderLivePromptController(
   request: FastifyRequest<{ Params: RuntimePromptParams }>,
   reply: FastifyReply,
 ) {
-  const user = requireUser(request, reply);
+  const context = getRuntimeContext(request, reply);
 
-  if (!user) {
+  if (!context) {
     return;
   }
 
@@ -49,7 +70,7 @@ export async function renderLivePromptController(
 
   try {
     const result = await renderLivePrompt(
-      user.id,
+      context,
       request.params.projectId,
       request.params.promptId,
       parsedBody.data,

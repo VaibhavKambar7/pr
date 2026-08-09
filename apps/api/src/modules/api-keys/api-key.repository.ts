@@ -64,3 +64,27 @@ export async function revokeApiKey(input: ApiKeyIdentity) {
     },
   });
 }
+
+export async function findActiveApiKeyByHash(keyHash: string) {
+  return prisma.apiKey.findFirst({
+    where: {
+      keyHash,
+      revokedAt: null,
+    },
+    select: {
+      id: true,
+      projectId: true,
+    },
+  });
+}
+
+export async function touchApiKeyLastUsedAt(id: string) {
+  return prisma.apiKey.update({
+    where: {
+      id,
+    },
+    data: {
+      lastUsedAt: new Date(),
+    },
+  });
+}

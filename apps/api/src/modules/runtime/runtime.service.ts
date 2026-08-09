@@ -1,4 +1,5 @@
-import { getPromptForProject } from "../prompts/prompt.service.js";
+import { findPromptById } from "../prompts/prompt.repository.js";
+import { PromptNotFoundError, getPromptForProject } from "../prompts/prompt.service.js";
 import { findLivePromptVersion } from "./runtime.repository.js";
 import type { RenderLivePromptInput } from "./runtime.schema.js";
 
@@ -14,6 +15,23 @@ export class MissingTemplateVariableError extends Error {
   }
 }
 
+export class RuntimeProjectAccessError extends Error {
+  constructor() {
+    super("runtime credential cannot access this project");
+  }
+}
+
+type RuntimeAuthContext =
+  | {
+      type: "user";
+      userId: string;
+    }
+  | {
+      type: "apiKey";
+      apiKeyId: string;
+      projectId: string;
+    };
+
 function renderTemplate(template: string, variables: RenderLivePromptInput["variables"]) {
   return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_match, variableName: string) => {
     if (!(variableName in variables)) {
@@ -25,8 +43,29 @@ function renderTemplate(template: string, variables: RenderLivePromptInput["vari
   });
 }
 
-export async function getLivePromptVersion(ownerId: string, projectId: string, promptId: string) {
-  const prompt = await getPromptForProject(ownerId, projectId, promptId);
+async function getPromptForRuntimeContext(context: RuntimeAuthContext, projectId: string, promptId: string) {
+  if (context.type === "apiKey") {
+    if (context.projectId !== projectId) {
+      throw new RuntimeProjectAccessError();
+    }
+
+    const prompt = await findPromptById({
+      id: promptId,
+      projectId,
+    });
+
+    if (!prompt) {
+      throw new PromptNotFoundError();
+    }
+
+    return prompt;
+  }
+
+  return getPromptForProject(context.userId, projectId, promptId);
+}
+
+export async function getLivePromptVersion(context: RuntimeAuthContext, projectId: string, promptId: string) {
+  const prompt = await getPromptForRuntimeContext(context, projectId, promptId);
   const promptVersion = await findLivePromptVersion(promptId);
 
   if (!promptVersion) {
@@ -39,8 +78,13 @@ export async function getLivePromptVersion(ownerId: string, projectId: string, p
   };
 }
 
-export async function renderLivePrompt(ownerId: string, projectId: string, promptId: string, input: RenderLivePromptInput) {
-  const { prompt, promptVersion } = await getLivePromptVersion(ownerId, projectId, promptId);
+export async function renderLivePrompt(
+  context: RuntimeAuthContext,
+  projectId: string,
+  promptId: string,
+  input: RenderLivePromptInput,
+) {
+  const { prompt, promptVersion } = await getLivePromptVersion(context, projectId, promptId);
 
   return {
     prompt,
