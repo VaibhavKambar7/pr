@@ -1,3 +1,5 @@
+import type { Prisma } from "@pr/database";
+import { recordRenderExecution } from "../executions/execution.service.js";
 import { findPromptById } from "../prompts/prompt.repository.js";
 import { PromptNotFoundError, getPromptForProject } from "../prompts/prompt.service.js";
 import { findLivePromptVersion } from "./runtime.repository.js";
@@ -21,7 +23,7 @@ export class RuntimeProjectAccessError extends Error {
   }
 }
 
-type RuntimeAuthContext =
+export type RuntimeAuthContext =
   | {
       type: "user";
       userId: string;
@@ -84,9 +86,22 @@ export async function renderLivePrompt(
   promptId: string,
   input: RenderLivePromptInput,
 ) {
+  const startedAt = Date.now();
   const { prompt, promptVersion } = await getLivePromptVersion(context, projectId, promptId);
+  const renderedPrompt = renderTemplate(promptVersion.template, input.variables);
+  const execution = await recordRenderExecution({
+    projectId,
+    promptId: prompt.id,
+    promptVersionId: promptVersion.id,
+    apiKeyId: context.type === "apiKey" ? context.apiKeyId : undefined,
+    userId: context.type === "user" ? context.userId : undefined,
+    variables: input.variables as Prisma.InputJsonValue,
+    renderedPrompt,
+    latencyMs: Date.now() - startedAt,
+  });
 
   return {
+    executionId: execution.id,
     prompt,
     promptVersion: {
       id: promptVersion.id,
@@ -97,6 +112,6 @@ export async function renderLivePrompt(
       createdAt: promptVersion.createdAt,
       promotedAt: promptVersion.promotedAt,
     },
-    renderedPrompt: renderTemplate(promptVersion.template, input.variables),
+    renderedPrompt,
   };
 }
