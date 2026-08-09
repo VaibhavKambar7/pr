@@ -1,8 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import "../auth/auth.types.js";
+import { sendProjectError } from "../../shared/errors.js";
+import { requireUser } from "../../shared/http.js";
 import {
-  ProjectConflictError,
-  ProjectNotFoundError,
   createProjectForUser,
   deleteProjectForUser,
   getProjectForUser,
@@ -14,28 +13,6 @@ import { createProjectSchema, updateProjectSchema } from "./project.schema.js";
 type ProjectParams = {
   projectId: string;
 };
-
-function requireUser(request: FastifyRequest, reply: FastifyReply) {
-  if (!request.user) {
-    void reply.code(401).send({ error: "unauthorized" });
-    return null;
-  }
-
-  return request.user;
-}
-
-function sendProjectError(reply: FastifyReply, error: unknown) {
-  if (error instanceof ProjectNotFoundError) {
-    return reply.code(404).send({ error: error.message });
-  }
-
-  if (error instanceof ProjectConflictError) {
-    return reply.code(409).send({ error: error.message });
-  }
-
-  const message = error instanceof Error ? error.message : "project operation failed";
-  return reply.code(500).send({ error: message });
-}
 
 export async function createProjectController(request: FastifyRequest, reply: FastifyReply) {
   const user = requireUser(request, reply);

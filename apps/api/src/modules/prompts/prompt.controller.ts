@@ -1,9 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import "../auth/auth.types.js";
-import { ProjectNotFoundError } from "../projects/project.service.js";
+import { sendPromptError } from "../../shared/errors.js";
+import { requireUser } from "../../shared/http.js";
 import {
-  PromptConflictError,
-  PromptNotFoundError,
   createPromptForProject,
   deletePromptForProject,
   getPromptForProject,
@@ -19,32 +17,6 @@ type ProjectParams = {
 type PromptParams = ProjectParams & {
   promptId: string;
 };
-
-function requireUser(request: FastifyRequest, reply: FastifyReply) {
-  if (!request.user) {
-    void reply.code(401).send({ error: "unauthorized" });
-    return null;
-  }
-
-  return request.user;
-}
-
-function sendPromptError(reply: FastifyReply, error: unknown) {
-  if (error instanceof ProjectNotFoundError) {
-    return reply.code(404).send({ error: error.message });
-  }
-
-  if (error instanceof PromptNotFoundError) {
-    return reply.code(404).send({ error: error.message });
-  }
-
-  if (error instanceof PromptConflictError) {
-    return reply.code(409).send({ error: error.message });
-  }
-
-  const message = error instanceof Error ? error.message : "prompt operation failed";
-  return reply.code(500).send({ error: message });
-}
 
 export async function createPromptController(
   request: FastifyRequest<{ Params: ProjectParams }>,
