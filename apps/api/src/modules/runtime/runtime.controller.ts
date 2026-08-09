@@ -1,7 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendRuntimeError } from "../../shared/errors.js";
 import { requireUser } from "../../shared/http.js";
-import { getLivePromptVersion } from "./runtime.service.js";
+import { getLivePromptVersion, renderLivePrompt } from "./runtime.service.js";
+import { renderLivePromptSchema } from "./runtime.schema.js";
 
 type RuntimePromptParams = {
   projectId: string;
@@ -20,6 +21,39 @@ export async function getLivePromptVersionController(
 
   try {
     const result = await getLivePromptVersion(user.id, request.params.projectId, request.params.promptId);
+
+    return reply.code(200).send(result);
+  } catch (error) {
+    return sendRuntimeError(reply, error);
+  }
+}
+
+export async function renderLivePromptController(
+  request: FastifyRequest<{ Params: RuntimePromptParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  const parsedBody = renderLivePromptSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+      issues: parsedBody.error.flatten().fieldErrors,
+    });
+  }
+
+  try {
+    const result = await renderLivePrompt(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+      parsedBody.data,
+    );
 
     return reply.code(200).send(result);
   } catch (error) {
