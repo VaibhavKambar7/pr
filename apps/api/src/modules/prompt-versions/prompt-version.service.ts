@@ -2,7 +2,6 @@ import { getPromptForProject } from "../prompts/prompt.service.js";
 import {
   createPromptVersion,
   findPromptVersion,
-  getLatestPromptVersionNumber,
   listPromptVersions,
   promotePromptVersion,
 } from "./prompt-version.repository.js";
@@ -32,11 +31,7 @@ export async function createVersionForPrompt(
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
 
-  const latestVersionNumber = await getLatestPromptVersionNumber(promptId);
-
-  return createPromptVersion({
-    promptId,
-    version: latestVersionNumber + 1,
+  return createPromptVersion(promptId, {
     template: input.template,
     model: input.model,
     modelParams: input.modelParams,
