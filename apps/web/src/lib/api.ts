@@ -58,6 +58,27 @@ type CreatePromptInput = {
   description?: string;
 };
 
+export type PromptVersionStatus = "DRAFT" | "LIVE" | "ARCHIVED";
+
+export type PromptVersion = {
+  id: string;
+  promptId: string;
+  version: number;
+  status: PromptVersionStatus;
+  template: string;
+  model: string | null;
+  modelParams: unknown;
+  createdAt: string;
+  promotedAt: string | null;
+  archivedAt: string | null;
+};
+
+type CreatePromptVersionInput = {
+  template: string;
+  model?: string;
+  modelParams?: Record<string, unknown>;
+};
+
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -131,4 +152,64 @@ export function createPrompt(accessToken: string, projectId: string, input: Crea
     },
     body: JSON.stringify(input),
   });
+}
+
+export function listPromptVersions(accessToken: string, projectId: string, promptId: string) {
+  return request<{ promptVersions: PromptVersion[] }>(
+    `/projects/${projectId}/prompts/${promptId}/versions`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+}
+
+export function createPromptVersion(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  input: CreatePromptVersionInput,
+) {
+  return request<{ promptVersion: PromptVersion }>(`/projects/${projectId}/prompts/${promptId}/versions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export function promotePromptVersion(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  version: number,
+) {
+  return request<{ promptVersion: PromptVersion }>(
+    `/projects/${projectId}/prompts/${promptId}/versions/${version}/promote`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+}
+
+export function rollbackPromptVersion(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  version: number,
+) {
+  return request<{ promptVersion: PromptVersion }>(
+    `/projects/${projectId}/prompts/${promptId}/versions/${version}/rollback`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
 }

@@ -294,13 +294,15 @@ button {
 }
 
 .workspace-grid,
-.registry-grid {
+.registry-grid,
+.versions-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 24px;
 }
 
-.registry-grid {
+.registry-grid,
+.versions-grid {
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
 }
 
@@ -318,7 +320,8 @@ button {
 }
 
 .project-list,
-.prompt-list {
+.prompt-list,
+.version-list {
   display: grid;
   gap: 12px;
 }
@@ -397,6 +400,66 @@ button {
   font-size: 22px;
 }
 
+.version-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.version-card-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.version-card-header strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 26px;
+}
+
+.version-card pre {
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: #10231c;
+  background: rgba(255, 250, 240, 0.74);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.version-card small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: var(--forest);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.status-badge.live {
+  color: #fff;
+  background: var(--forest);
+}
+
+.status-badge.draft {
+  color: var(--accent-strong);
+  background: rgba(222, 107, 53, 0.15);
+}
+
 .empty-state {
   display: grid;
   gap: 8px;
@@ -419,7 +482,8 @@ button {
   .feature-row,
   .metric-grid,
   .workspace-grid,
-  .registry-grid {
+  .registry-grid,
+  .versions-grid {
     grid-template-columns: 1fr;
   }
 
