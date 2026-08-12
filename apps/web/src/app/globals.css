@@ -293,10 +293,15 @@ button {
   font-size: 28px;
 }
 
-.workspace-grid {
+.workspace-grid,
+.registry-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 24px;
+}
+
+.registry-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
 }
 
 .section-heading h2 {
@@ -312,12 +317,14 @@ button {
   line-height: 1.6;
 }
 
-.project-list {
+.project-list,
+.prompt-list {
   display: grid;
   gap: 12px;
 }
 
-.project-card {
+.project-card,
+.prompt-card {
   display: grid;
   gap: 8px;
   width: 100%;
@@ -329,25 +336,65 @@ button {
   background: rgba(255, 255, 255, 0.52);
 }
 
-.project-card.active {
+.prompt-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.project-card.active,
+.prompt-card.active {
   border-color: rgba(23, 63, 53, 0.55);
   background: rgba(215, 234, 223, 0.86);
   box-shadow: 0 16px 44px rgba(23, 63, 53, 0.12);
 }
 
-.project-card span {
+.project-card span,
+.prompt-card span {
   color: var(--accent-strong);
   font-size: 13px;
 }
 
-.project-card strong {
+.project-card strong,
+.prompt-card strong {
+  display: block;
+  margin-top: 8px;
   font-size: 24px;
 }
 
-.project-card small {
+.project-card small,
+.prompt-card small {
+  display: block;
+  margin-top: 8px;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+}
+
+.prompt-card em {
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: var(--forest);
+  background: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.active-record {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.active-record span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.active-record strong {
+  font-size: 22px;
 }
 
 .empty-state {
@@ -371,7 +418,8 @@ button {
   .hero-grid,
   .feature-row,
   .metric-grid,
-  .workspace-grid {
+  .workspace-grid,
+  .registry-grid {
     grid-template-columns: 1fr;
   }
 

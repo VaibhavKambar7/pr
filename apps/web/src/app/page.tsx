@@ -2,12 +2,15 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
+  createPrompt,
   createProject,
   getMe,
+  listPrompts,
   listProjects,
   login,
   register,
   type AuthUser,
+  type Prompt,
   type Project,
 } from "../lib/api";
 
@@ -197,9 +200,18 @@ function DashboardPreview({
   const [projectSlug, setProjectSlug] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectMessage, setProjectMessage] = useState("Loading projects...");
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const [promptName, setPromptName] = useState("");
+  const [promptSlug, setPromptSlug] = useState("");
+  const [promptDescription, setPromptDescription] = useState("");
+  const [promptMessage, setPromptMessage] = useState("Select a project to load prompts.");
   const [isProjectError, setIsProjectError] = useState(false);
+  const [isPromptError, setIsPromptError] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -271,6 +283,97 @@ function DashboardPreview({
   }
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
+  const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId) {
+      setPrompts([]);
+      setSelectedPromptId(null);
+      setPromptMessage("Select a project to load prompts.");
+      return;
+    }
+
+    async function loadPrompts() {
+      if (!selectedProjectId) {
+        return;
+      }
+
+      setIsLoadingPrompts(true);
+      setIsPromptError(false);
+      setPromptMessage("Loading prompts...");
+
+      try {
+        const result = await listPrompts(accessToken, selectedProjectId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPrompts(result.prompts);
+        setSelectedPromptId(result.prompts[0]?.id ?? null);
+        setPromptMessage(
+          result.prompts.length === 0
+            ? "No prompts yet. Create the first prompt in this project."
+            : "Prompts loaded.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPrompts([]);
+        setSelectedPromptId(null);
+        setIsPromptError(true);
+        setPromptMessage(error instanceof Error ? error.message : "Failed to load prompts");
+      } finally {
+        if (isMounted) {
+          setIsLoadingPrompts(false);
+        }
+      }
+    }
+
+    void loadPrompts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId]);
+
+  async function handleCreatePrompt(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProjectId) {
+      setIsPromptError(true);
+      setPromptMessage("Create or select a project before adding prompts.");
+      return;
+    }
+
+    setIsCreatingPrompt(true);
+    setIsPromptError(false);
+    setPromptMessage("Creating prompt...");
+
+    try {
+      const result = await createPrompt(accessToken, selectedProjectId, {
+        name: promptName,
+        slug: promptSlug || undefined,
+        description: promptDescription || undefined,
+      });
+
+      setPrompts((currentPrompts) => [result.prompt, ...currentPrompts]);
+      setSelectedPromptId(result.prompt.id);
+      setPromptName("");
+      setPromptSlug("");
+      setPromptDescription("");
+      setPromptMessage("Prompt created and selected.");
+    } catch (error) {
+      setIsPromptError(true);
+      setPromptMessage(error instanceof Error ? error.message : "Failed to create prompt");
+    } finally {
+      setIsCreatingPrompt(false);
+    }
+  }
 
   return (
     <main className="page-shell">
@@ -300,8 +403,8 @@ function DashboardPreview({
               <strong>{selectedProject?.slug ?? "none"}</strong>
             </div>
             <div className="metric-card">
-              <span>API user</span>
-              <strong>{user.email}</strong>
+              <span>Prompts</span>
+              <strong>{prompts.length}</strong>
             </div>
           </div>
         </section>
@@ -388,6 +491,117 @@ function DashboardPreview({
             </form>
 
             <p className={`status-message ${isProjectError ? "error" : ""}`}>{projectMessage}</p>
+          </div>
+        </section>
+
+        <section className="registry-grid">
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Prompt Registry</span>
+              <h2>{selectedProject ? selectedProject.name : "Select a project"}</h2>
+              <p>
+                Prompts are stable records. The actual prompt text will live in immutable versions next.
+              </p>
+            </div>
+
+            {isLoadingPrompts ? <p className="status-message">Loading prompts...</p> : null}
+
+            {!isLoadingPrompts && selectedProject && prompts.length === 0 ? (
+              <div className="empty-state">
+                <strong>No prompts in this project</strong>
+                <span>Create a prompt record, then we can add versioned templates to it.</span>
+              </div>
+            ) : null}
+
+            {!selectedProject ? (
+              <div className="empty-state">
+                <strong>No project selected</strong>
+                <span>Select or create a project above before adding prompt records.</span>
+              </div>
+            ) : null}
+
+            <div className="prompt-list">
+              {prompts.map((prompt) => (
+                <button
+                  className={`prompt-card ${prompt.id === selectedPromptId ? "active" : ""}`}
+                  key={prompt.id}
+                  onClick={() => setSelectedPromptId(prompt.id)}
+                  type="button"
+                >
+                  <div>
+                    <span>{prompt.slug}</span>
+                    <strong>{prompt.name}</strong>
+                    <small>{prompt.description || "No description yet"}</small>
+                  </div>
+                  <em>{prompt.id === selectedPromptId ? "selected" : "registry"}</em>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Create</span>
+              <h2>New prompt</h2>
+              <p>
+                Add a named prompt record. Versioned templates and live promotion come in the next slice.
+              </p>
+            </div>
+
+            <form className="form-stack" onSubmit={handleCreatePrompt}>
+              <div className="field">
+                <label htmlFor="prompt-name">Prompt name</label>
+                <input
+                  disabled={!selectedProject}
+                  id="prompt-name"
+                  minLength={2}
+                  onChange={(event) => setPromptName(event.target.value)}
+                  placeholder="Support reply generator"
+                  required
+                  value={promptName}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="prompt-slug">Slug optional</label>
+                <input
+                  disabled={!selectedProject}
+                  id="prompt-slug"
+                  minLength={2}
+                  onChange={(event) => setPromptSlug(event.target.value)}
+                  placeholder="support-reply-generator"
+                  value={promptSlug}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="prompt-description">Description optional</label>
+                <textarea
+                  disabled={!selectedProject}
+                  id="prompt-description"
+                  maxLength={500}
+                  onChange={(event) => setPromptDescription(event.target.value)}
+                  placeholder="Creates concise customer support replies using ticket context."
+                  rows={4}
+                  value={promptDescription}
+                />
+              </div>
+
+              <button
+                className="primary-button"
+                disabled={!selectedProject || isCreatingPrompt}
+                type="submit"
+              >
+                {isCreatingPrompt ? "Creating..." : "Create prompt"}
+              </button>
+            </form>
+
+            <div className="active-record">
+              <span>Active prompt</span>
+              <strong>{selectedPrompt?.name ?? "none"}</strong>
+            </div>
+
+            <p className={`status-message ${isPromptError ? "error" : ""}`}>{promptMessage}</p>
           </div>
         </section>
       </div>

@@ -42,6 +42,22 @@ type CreateProjectInput = {
   description?: string;
 };
 
+export type Prompt = {
+  id: string;
+  projectId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreatePromptInput = {
+  name: string;
+  slug?: string;
+  description?: string;
+};
+
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -91,6 +107,24 @@ export function listProjects(accessToken: string) {
 
 export function createProject(accessToken: string, input: CreateProjectInput) {
   return request<{ project: Project }>("/projects", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export function listPrompts(accessToken: string, projectId: string) {
+  return request<{ prompts: Prompt[] }>(`/projects/${projectId}/prompts`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function createPrompt(accessToken: string, projectId: string, input: CreatePromptInput) {
+  return request<{ prompt: Prompt }>(`/projects/${projectId}/prompts`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
