@@ -111,6 +111,62 @@ export type RuntimeRenderResult = {
   renderedPrompt: string;
 };
 
+type ExecutionPromptSummary = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type ExecutionPromptVersionSummary = {
+  id: string;
+  version: number;
+  status: PromptVersionStatus;
+  model: string | null;
+};
+
+type ExecutionApiKeySummary = {
+  id: string;
+  name: string;
+  prefix: string;
+};
+
+type ExecutionUserSummary = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
+export type ExecutionListItem = {
+  id: string;
+  latencyMs: number | null;
+  output: string | null;
+  error: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  costUsd: string | null;
+  createdAt: string;
+  prompt: ExecutionPromptSummary;
+  promptVersion: ExecutionPromptVersionSummary;
+  apiKey: ExecutionApiKeySummary | null;
+  user: ExecutionUserSummary | null;
+};
+
+export type ExecutionDetail = ExecutionListItem & {
+  projectId: string;
+  promptId: string;
+  promptVersionId: string;
+  apiKeyId: string | null;
+  userId: string | null;
+  variables: unknown;
+  renderedPrompt: string;
+  promptVersion: ExecutionPromptVersionSummary & {
+    modelParams: unknown;
+    createdAt: string;
+    promotedAt: string | null;
+  };
+};
+
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -289,5 +345,23 @@ export function renderLivePrompt(
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(input),
+  });
+}
+
+export function listExecutions(accessToken: string, projectId: string, promptId?: string) {
+  const query = promptId ? `?promptId=${encodeURIComponent(promptId)}` : "";
+
+  return request<{ executions: ExecutionListItem[] }>(`/projects/${projectId}/executions${query}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function getExecution(accessToken: string, projectId: string, executionId: string) {
+  return request<{ execution: ExecutionDetail }>(`/projects/${projectId}/executions/${executionId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 }

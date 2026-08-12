@@ -297,7 +297,8 @@ button {
 .api-keys-grid,
 .registry-grid,
 .versions-grid,
-.runtime-grid {
+.runtime-grid,
+.execution-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 24px;
@@ -306,7 +307,8 @@ button {
 .api-keys-grid,
 .registry-grid,
 .versions-grid,
-.runtime-grid {
+.runtime-grid,
+.execution-grid {
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
 }
 
@@ -325,6 +327,7 @@ button {
 
 .project-list,
 .api-key-list,
+.execution-list,
 .prompt-list,
 .version-list {
   display: grid;
@@ -333,7 +336,8 @@ button {
 
 .project-card,
 .prompt-card,
-.api-key-card {
+.api-key-card,
+.execution-card {
   display: grid;
   gap: 8px;
   width: 100%;
@@ -355,8 +359,14 @@ button {
   align-items: center;
 }
 
+.execution-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .project-card.active,
-.prompt-card.active {
+.prompt-card.active,
+.execution-card.active {
   border-color: rgba(23, 63, 53, 0.55);
   background: rgba(215, 234, 223, 0.86);
   box-shadow: 0 16px 44px rgba(23, 63, 53, 0.12);
@@ -364,14 +374,16 @@ button {
 
 .project-card span,
 .prompt-card span,
-.api-key-card span {
+.api-key-card span,
+.execution-card span {
   color: var(--accent-strong);
   font-size: 13px;
 }
 
 .project-card strong,
 .prompt-card strong,
-.api-key-card strong {
+.api-key-card strong,
+.execution-card strong {
   display: block;
   margin-top: 8px;
   font-size: 24px;
@@ -379,7 +391,8 @@ button {
 
 .project-card small,
 .prompt-card small,
-.api-key-card small {
+.api-key-card small,
+.execution-card small {
   display: block;
   margin-top: 8px;
   color: var(--muted);
@@ -416,7 +429,8 @@ button {
   white-space: nowrap;
 }
 
-.prompt-card em {
+.prompt-card em,
+.execution-card em {
   padding: 8px 10px;
   border-radius: 999px;
   color: var(--forest);
@@ -522,6 +536,41 @@ button {
   white-space: pre-wrap;
 }
 
+.execution-detail-card {
+  align-content: start;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.json-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.json-panel span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.json-panel pre {
+  overflow: auto;
+  max-height: 320px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  color: #10231c;
+  background: rgba(255, 250, 240, 0.82);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 .empty-state {
   display: grid;
   gap: 8px;
@@ -547,7 +596,9 @@ button {
   .api-keys-grid,
   .registry-grid,
   .versions-grid,
-  .runtime-grid {
+  .runtime-grid,
+  .execution-grid,
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 

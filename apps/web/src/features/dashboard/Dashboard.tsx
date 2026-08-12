@@ -6,7 +6,9 @@ import {
   createPrompt,
   createPromptVersion,
   createProject,
+  getExecution,
   listApiKeys,
+  listExecutions,
   listPrompts,
   listPromptVersions,
   listProjects,
@@ -16,6 +18,8 @@ import {
   rollbackPromptVersion,
   type ApiKey,
   type AuthUser,
+  type ExecutionDetail,
+  type ExecutionListItem,
   type Prompt,
   type PromptVersion,
   type Project,
@@ -54,15 +58,22 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [runtimeVariables, setRuntimeVariables] = useState("{\n  \"customer_name\": \"Asha\",\n  \"issue\": \"a delayed order\"\n}");
   const [runtimeMessage, setRuntimeMessage] = useState("Promote a live version, then render it here.");
   const [renderResult, setRenderResult] = useState<RuntimeRenderResult | null>(null);
+  const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [executionDetail, setExecutionDetail] = useState<ExecutionDetail | null>(null);
+  const [executionMessage, setExecutionMessage] = useState("Select a project to load execution history.");
   const [isProjectError, setIsProjectError] = useState(false);
   const [isApiKeyError, setIsApiKeyError] = useState(false);
   const [isPromptError, setIsPromptError] = useState(false);
   const [isVersionError, setIsVersionError] = useState(false);
   const [isRuntimeError, setIsRuntimeError] = useState(false);
+  const [isExecutionError, setIsExecutionError] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(false);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [isLoadingExecutions, setIsLoadingExecutions] = useState(false);
+  const [isLoadingExecutionDetail, setIsLoadingExecutionDetail] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isCreatingApiKey, setIsCreatingApiKey] = useState(false);
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
@@ -280,6 +291,116 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       isMounted = false;
     };
   }, [accessToken, selectedProjectId, selectedPromptId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId) {
+      setExecutions([]);
+      setSelectedExecutionId(null);
+      setExecutionDetail(null);
+      setExecutionMessage("Select a project to load execution history.");
+      return;
+    }
+
+    async function loadExecutionHistory() {
+      if (!selectedProjectId) {
+        return;
+      }
+
+      setIsLoadingExecutions(true);
+      setIsExecutionError(false);
+      setExecutionMessage("Loading execution history...");
+
+      try {
+        const result = await listExecutions(accessToken, selectedProjectId, selectedPromptId ?? undefined);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setExecutions(result.executions);
+        setSelectedExecutionId((currentExecutionId) => {
+          if (currentExecutionId && result.executions.some((execution) => execution.id === currentExecutionId)) {
+            return currentExecutionId;
+          }
+
+          return result.executions[0]?.id ?? null;
+        });
+        setExecutionMessage(
+          result.executions.length === 0
+            ? "No executions yet. Render a live prompt to create one."
+            : "Execution history loaded.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setExecutions([]);
+        setSelectedExecutionId(null);
+        setExecutionDetail(null);
+        setIsExecutionError(true);
+        setExecutionMessage(error instanceof Error ? error.message : "Failed to load execution history");
+      } finally {
+        if (isMounted) {
+          setIsLoadingExecutions(false);
+        }
+      }
+    }
+
+    void loadExecutionHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId, selectedPromptId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId || !selectedExecutionId) {
+      setExecutionDetail(null);
+      return;
+    }
+
+    async function loadExecutionDetail() {
+      if (!selectedProjectId || !selectedExecutionId) {
+        return;
+      }
+
+      setIsLoadingExecutionDetail(true);
+      setIsExecutionError(false);
+
+      try {
+        const result = await getExecution(accessToken, selectedProjectId, selectedExecutionId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setExecutionDetail(result.execution);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setExecutionDetail(null);
+        setIsExecutionError(true);
+        setExecutionMessage(error instanceof Error ? error.message : "Failed to load execution detail");
+      } finally {
+        if (isMounted) {
+          setIsLoadingExecutionDetail(false);
+        }
+      }
+    }
+
+    void loadExecutionDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId, selectedExecutionId]);
 
   useEffect(() => {
     setRenderResult(null);
@@ -508,6 +629,38 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       });
 
       setRenderResult(result);
+      setExecutions((currentExecutions) => [
+        {
+          id: result.executionId,
+          latencyMs: null,
+          output: null,
+          error: null,
+          promptTokens: null,
+          completionTokens: null,
+          totalTokens: null,
+          costUsd: null,
+          createdAt: new Date().toISOString(),
+          prompt: {
+            id: result.prompt.id,
+            name: result.prompt.name,
+            slug: result.prompt.slug,
+          },
+          promptVersion: {
+            id: result.promptVersion.id,
+            version: result.promptVersion.version,
+            status: result.promptVersion.status,
+            model: result.promptVersion.model,
+          },
+          apiKey: null,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        },
+        ...currentExecutions.filter((execution) => execution.id !== result.executionId),
+      ]);
+      setSelectedExecutionId(result.executionId);
       setRuntimeMessage(`Rendered live version v${result.promptVersion.version}.`);
     } catch (error) {
       setRenderResult(null);
@@ -1031,6 +1184,116 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
               <div className="empty-state">
                 <strong>No render yet</strong>
                 <span>Render the live prompt to preview the final text and create an execution record.</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="execution-grid">
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Observability</span>
+              <h2>Execution history</h2>
+              <p>
+                Every runtime render creates an execution record with inputs, rendered output, latency,
+                and caller attribution.
+              </p>
+            </div>
+
+            {isLoadingExecutions ? <p className="status-message">Loading executions...</p> : null}
+
+            {!isLoadingExecutions && selectedProject && executions.length === 0 ? (
+              <div className="empty-state">
+                <strong>No executions yet</strong>
+                <span>Render the live prompt above to create an execution history record.</span>
+              </div>
+            ) : null}
+
+            {!selectedProject ? (
+              <div className="empty-state">
+                <strong>No project selected</strong>
+                <span>Select a project before viewing execution history.</span>
+              </div>
+            ) : null}
+
+            <div className="execution-list">
+              {executions.map((execution) => (
+                <button
+                  className={`execution-card ${execution.id === selectedExecutionId ? "active" : ""}`}
+                  key={execution.id}
+                  onClick={() => setSelectedExecutionId(execution.id)}
+                  type="button"
+                >
+                  <div>
+                    <span>{execution.error ? "error" : "render"}</span>
+                    <strong>{execution.prompt.name}</strong>
+                    <small>
+                      v{execution.promptVersion.version} · {execution.latencyMs ?? "-"}ms ·{" "}
+                      {new Date(execution.createdAt).toLocaleString()}
+                    </small>
+                    <small>
+                      caller{" "}
+                      {execution.apiKey
+                        ? `${execution.apiKey.name} (${execution.apiKey.prefix})`
+                        : execution.user?.email ?? "unknown"}
+                    </small>
+                  </div>
+                  <em>{execution.id === selectedExecutionId ? "selected" : "view"}</em>
+                </button>
+              ))}
+            </div>
+
+            <p className={`status-message ${isExecutionError ? "error" : ""}`}>{executionMessage}</p>
+          </div>
+
+          <div className="dashboard-card execution-detail-card">
+            <div className="section-heading">
+              <span className="eyebrow">Detail</span>
+              <h2>Execution detail</h2>
+              <p>Inspect the exact variables and rendered prompt used for this runtime call.</p>
+            </div>
+
+            {isLoadingExecutionDetail ? <p className="status-message">Loading detail...</p> : null}
+
+            {executionDetail ? (
+              <>
+                <div className="detail-grid">
+                  <div className="active-record">
+                    <span>Execution</span>
+                    <strong>{executionDetail.id}</strong>
+                  </div>
+                  <div className="active-record">
+                    <span>Latency</span>
+                    <strong>{executionDetail.latencyMs ?? "-"}ms</strong>
+                  </div>
+                  <div className="active-record">
+                    <span>Version</span>
+                    <strong>v{executionDetail.promptVersion.version}</strong>
+                  </div>
+                  <div className="active-record">
+                    <span>Caller</span>
+                    <strong>
+                      {executionDetail.apiKey
+                        ? executionDetail.apiKey.name
+                        : executionDetail.user?.email ?? "unknown"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="json-panel">
+                  <span>Variables</span>
+                  <pre>{JSON.stringify(executionDetail.variables, null, 2)}</pre>
+                </div>
+
+                <div className="json-panel">
+                  <span>Rendered prompt</span>
+                  <pre>{executionDetail.renderedPrompt}</pre>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <strong>No execution selected</strong>
+                <span>Select an execution from the list to inspect its details.</span>
               </div>
             )}
           </div>
