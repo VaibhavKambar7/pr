@@ -26,6 +26,22 @@ type LoginInput = {
   password: string;
 };
 
+export type Project = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreateProjectInput = {
+  name: string;
+  slug?: string;
+  description?: string;
+};
+
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -62,5 +78,23 @@ export function getMe(accessToken: string) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
+  });
+}
+
+export function listProjects(accessToken: string) {
+  return request<{ projects: Project[] }>("/projects", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function createProject(accessToken: string, input: CreateProjectInput) {
+  return request<{ project: Project }>("/projects", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
   });
 }

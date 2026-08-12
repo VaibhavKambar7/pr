@@ -1,7 +1,15 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { getMe, login, register, type AuthUser } from "../lib/api";
+import {
+  createProject,
+  getMe,
+  listProjects,
+  login,
+  register,
+  type AuthUser,
+  type Project,
+} from "../lib/api";
 
 type AuthMode = "login" | "register";
 
@@ -57,7 +65,7 @@ export default function HomePage() {
       window.localStorage.setItem(TOKEN_STORAGE_KEY, result.accessToken);
       setAccessToken(result.accessToken);
       setUser(result.user);
-      setMessage("You are in. Next up: projects and prompt registry UI.");
+      setMessage("You are in. Loading your projects...");
     } catch (error) {
       setIsError(true);
       setMessage(error instanceof Error ? error.message : "Something went wrong");
@@ -76,7 +84,7 @@ export default function HomePage() {
   }
 
   if (accessToken && user) {
-    return <DashboardPreview user={user} onLogout={handleLogout} />;
+    return <DashboardPreview accessToken={accessToken} user={user} onLogout={handleLogout} />;
   }
 
   return (
@@ -174,7 +182,96 @@ export default function HomePage() {
   );
 }
 
-function DashboardPreview({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
+function DashboardPreview({
+  accessToken,
+  user,
+  onLogout,
+}: {
+  accessToken: string;
+  user: AuthUser;
+  onLogout: () => void;
+}) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState("");
+  const [projectSlug, setProjectSlug] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectMessage, setProjectMessage] = useState("Loading projects...");
+  const [isProjectError, setIsProjectError] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProjects() {
+      setIsLoadingProjects(true);
+      setIsProjectError(false);
+
+      try {
+        const result = await listProjects(accessToken);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProjects(result.projects);
+        setSelectedProjectId((currentProjectId) => currentProjectId ?? result.projects[0]?.id ?? null);
+        setProjectMessage(
+          result.projects.length === 0
+            ? "No projects yet. Create your first workspace to start managing prompts."
+            : "Projects loaded.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setIsProjectError(true);
+        setProjectMessage(error instanceof Error ? error.message : "Failed to load projects");
+      } finally {
+        if (isMounted) {
+          setIsLoadingProjects(false);
+        }
+      }
+    }
+
+    void loadProjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken]);
+
+  async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsCreatingProject(true);
+    setIsProjectError(false);
+    setProjectMessage("Creating project...");
+
+    try {
+      const result = await createProject(accessToken, {
+        name: projectName,
+        slug: projectSlug || undefined,
+        description: projectDescription || undefined,
+      });
+
+      setProjects((currentProjects) => [result.project, ...currentProjects]);
+      setSelectedProjectId(result.project.id);
+      setProjectName("");
+      setProjectSlug("");
+      setProjectDescription("");
+      setProjectMessage("Project created and selected.");
+    } catch (error) {
+      setIsProjectError(true);
+      setProjectMessage(error instanceof Error ? error.message : "Failed to create project");
+    } finally {
+      setIsCreatingProject(false);
+    }
+  }
+
+  const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
+
   return (
     <main className="page-shell">
       <div className="dashboard-wrap">
@@ -184,8 +281,8 @@ function DashboardPreview({ user, onLogout }: { user: AuthUser; onLogout: () => 
               <span className="eyebrow">Admin dashboard</span>
               <h1>Welcome, {user.name ?? user.email}.</h1>
               <p>
-                Auth is connected. The next slice will add project creation and prompt registry screens
-                on top of this shell.
+                Create a project workspace first. Every prompt, version, API key, and execution belongs
+                to one of these projects.
               </p>
             </div>
             <button className="secondary-button" onClick={onLogout}>
@@ -195,17 +292,102 @@ function DashboardPreview({ user, onLogout }: { user: AuthUser; onLogout: () => 
 
           <div className="metric-grid">
             <div className="metric-card">
-              <span>Current module</span>
-              <strong>Auth</strong>
+              <span>Total projects</span>
+              <strong>{projects.length}</strong>
             </div>
             <div className="metric-card">
-              <span>Next module</span>
-              <strong>Projects</strong>
+              <span>Active project</span>
+              <strong>{selectedProject?.slug ?? "none"}</strong>
             </div>
             <div className="metric-card">
               <span>API user</span>
               <strong>{user.email}</strong>
             </div>
+          </div>
+        </section>
+
+        <section className="workspace-grid">
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Projects</span>
+              <h2>Workspaces</h2>
+              <p>Select the workspace your application will use at runtime.</p>
+            </div>
+
+            {isLoadingProjects ? <p className="status-message">Loading projects...</p> : null}
+
+            {!isLoadingProjects && projects.length === 0 ? (
+              <div className="empty-state">
+                <strong>No projects yet</strong>
+                <span>Create one on the right. Then we can add prompts inside it.</span>
+              </div>
+            ) : null}
+
+            <div className="project-list">
+              {projects.map((project) => (
+                <button
+                  className={`project-card ${project.id === selectedProjectId ? "active" : ""}`}
+                  key={project.id}
+                  onClick={() => setSelectedProjectId(project.id)}
+                  type="button"
+                >
+                  <span>{project.slug}</span>
+                  <strong>{project.name}</strong>
+                  <small>{project.description || "No description yet"}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Create</span>
+              <h2>New project</h2>
+              <p>This becomes the parent workspace for prompts and API keys.</p>
+            </div>
+
+            <form className="form-stack" onSubmit={handleCreateProject}>
+              <div className="field">
+                <label htmlFor="project-name">Project name</label>
+                <input
+                  id="project-name"
+                  minLength={2}
+                  onChange={(event) => setProjectName(event.target.value)}
+                  placeholder="Customer Support AI"
+                  required
+                  value={projectName}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="project-slug">Slug optional</label>
+                <input
+                  id="project-slug"
+                  minLength={2}
+                  onChange={(event) => setProjectSlug(event.target.value)}
+                  placeholder="customer-support-ai"
+                  value={projectSlug}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="project-description">Description optional</label>
+                <textarea
+                  id="project-description"
+                  maxLength={500}
+                  onChange={(event) => setProjectDescription(event.target.value)}
+                  placeholder="Prompts used by the support automation service."
+                  rows={4}
+                  value={projectDescription}
+                />
+              </div>
+
+              <button className="primary-button" disabled={isCreatingProject} type="submit">
+                {isCreatingProject ? "Creating..." : "Create project"}
+              </button>
+            </form>
+
+            <p className={`status-message ${isProjectError ? "error" : ""}`}>{projectMessage}</p>
           </div>
         </section>
       </div>
