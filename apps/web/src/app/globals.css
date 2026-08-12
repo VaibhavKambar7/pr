@@ -295,14 +295,16 @@ button {
 
 .workspace-grid,
 .registry-grid,
-.versions-grid {
+.versions-grid,
+.runtime-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 24px;
 }
 
 .registry-grid,
-.versions-grid {
+.versions-grid,
+.runtime-grid {
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
 }
 
@@ -460,6 +462,25 @@ button {
   background: rgba(222, 107, 53, 0.15);
 }
 
+.render-output-card {
+  align-content: start;
+}
+
+.rendered-prompt {
+  overflow: auto;
+  min-height: 220px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  color: #10231c;
+  background: rgba(255, 250, 240, 0.82);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
 .empty-state {
   display: grid;
   gap: 8px;
@@ -483,7 +504,8 @@ button {
   .metric-grid,
   .workspace-grid,
   .registry-grid,
-  .versions-grid {
+  .versions-grid,
+  .runtime-grid {
     grid-template-columns: 1fr;
   }
 

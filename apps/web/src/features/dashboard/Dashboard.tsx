@@ -9,32 +9,21 @@ import {
   listPromptVersions,
   listProjects,
   promotePromptVersion,
+  renderLivePrompt,
   rollbackPromptVersion,
   type AuthUser,
   type Prompt,
   type PromptVersion,
   type Project,
+  type RuntimeRenderResult,
 } from "../../lib/api";
+import { parseJsonObject, parseTemplateVariables } from "../../lib/json";
 
 type DashboardProps = {
   accessToken: string;
   user: AuthUser;
   onLogout: () => void;
 };
-
-function parseJsonObject(value: string) {
-  if (!value.trim()) {
-    return undefined;
-  }
-
-  const parsed = JSON.parse(value) as unknown;
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("model params must be a JSON object");
-  }
-
-  return parsed as Record<string, unknown>;
-}
 
 export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -54,15 +43,20 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [versionModel, setVersionModel] = useState("");
   const [versionModelParams, setVersionModelParams] = useState("{\n  \"temperature\": 0.2\n}");
   const [versionMessage, setVersionMessage] = useState("Select a prompt to load versions.");
+  const [runtimeVariables, setRuntimeVariables] = useState("{\n  \"customer_name\": \"Asha\",\n  \"issue\": \"a delayed order\"\n}");
+  const [runtimeMessage, setRuntimeMessage] = useState("Promote a live version, then render it here.");
+  const [renderResult, setRenderResult] = useState<RuntimeRenderResult | null>(null);
   const [isProjectError, setIsProjectError] = useState(false);
   const [isPromptError, setIsPromptError] = useState(false);
   const [isVersionError, setIsVersionError] = useState(false);
+  const [isRuntimeError, setIsRuntimeError] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [isRenderingPrompt, setIsRenderingPrompt] = useState(false);
   const [promotingVersion, setPromotingVersion] = useState<number | null>(null);
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
@@ -220,6 +214,12 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     };
   }, [accessToken, selectedProjectId, selectedPromptId]);
 
+  useEffect(() => {
+    setRenderResult(null);
+    setIsRuntimeError(false);
+    setRuntimeMessage(liveVersion ? "Ready to render the live prompt." : "Promote a live version, then render it here.");
+  }, [liveVersion?.id, selectedProjectId, selectedPromptId]);
+
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsCreatingProject(true);
@@ -295,7 +295,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     setVersionMessage("Creating immutable version...");
 
     try {
-      const modelParams = parseJsonObject(versionModelParams);
+      const modelParams = parseJsonObject(versionModelParams, "model params");
       const result = await createPromptVersion(accessToken, selectedProjectId, selectedPromptId, {
         template: versionTemplate,
         model: versionModel || undefined,
@@ -349,6 +349,42 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       setVersionMessage(error instanceof Error ? error.message : "Failed to promote version");
     } finally {
       setPromotingVersion(null);
+    }
+  }
+
+  async function handleRenderLivePrompt(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProjectId || !selectedPromptId) {
+      setIsRuntimeError(true);
+      setRuntimeMessage("Select a project and prompt before rendering.");
+      return;
+    }
+
+    if (!liveVersion) {
+      setIsRuntimeError(true);
+      setRuntimeMessage("Promote a version to live before rendering.");
+      return;
+    }
+
+    setIsRenderingPrompt(true);
+    setIsRuntimeError(false);
+    setRuntimeMessage("Rendering live prompt...");
+
+    try {
+      const variables = parseTemplateVariables(runtimeVariables);
+      const result = await renderLivePrompt(accessToken, selectedProjectId, selectedPromptId, {
+        variables,
+      });
+
+      setRenderResult(result);
+      setRuntimeMessage(`Rendered live version v${result.promptVersion.version}.`);
+    } catch (error) {
+      setRenderResult(null);
+      setIsRuntimeError(true);
+      setRuntimeMessage(error instanceof Error ? error.message : "Failed to render live prompt");
+    } finally {
+      setIsRenderingPrompt(false);
     }
   }
 
@@ -692,6 +728,80 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
             </div>
 
             <p className={`status-message ${isVersionError ? "error" : ""}`}>{versionMessage}</p>
+          </div>
+        </section>
+
+        <section className="runtime-grid">
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Runtime</span>
+              <h2>Render live prompt</h2>
+              <p>
+                This simulates what an application does at runtime: ask Promptu for the current live
+                prompt without redeploying.
+              </p>
+            </div>
+
+            <form className="form-stack" onSubmit={handleRenderLivePrompt}>
+              <div className="field">
+                <label htmlFor="runtime-variables">Variables JSON</label>
+                <textarea
+                  disabled={!selectedPrompt || !liveVersion}
+                  id="runtime-variables"
+                  onChange={(event) => setRuntimeVariables(event.target.value)}
+                  rows={7}
+                  value={runtimeVariables}
+                />
+              </div>
+
+              <button
+                className="primary-button"
+                disabled={!selectedPrompt || !liveVersion || isRenderingPrompt}
+                type="submit"
+              >
+                {isRenderingPrompt ? "Rendering..." : "Render live prompt"}
+              </button>
+            </form>
+
+            <div className="active-record">
+              <span>Runtime target</span>
+              <strong>
+                {selectedProject?.slug && selectedPrompt?.slug
+                  ? `${selectedProject.slug}/${selectedPrompt.slug}`
+                  : "none"}
+              </strong>
+            </div>
+
+            <p className={`status-message ${isRuntimeError ? "error" : ""}`}>{runtimeMessage}</p>
+          </div>
+
+          <div className="dashboard-card render-output-card">
+            <div className="section-heading">
+              <span className="eyebrow">Output</span>
+              <h2>Rendered prompt</h2>
+              <p>The render call also creates an execution-history record.</p>
+            </div>
+
+            {renderResult ? (
+              <>
+                <div className="active-record">
+                  <span>Execution ID</span>
+                  <strong>{renderResult.executionId}</strong>
+                </div>
+
+                <div className="active-record">
+                  <span>Live version used</span>
+                  <strong>v{renderResult.promptVersion.version}</strong>
+                </div>
+
+                <pre className="rendered-prompt">{renderResult.renderedPrompt}</pre>
+              </>
+            ) : (
+              <div className="empty-state">
+                <strong>No render yet</strong>
+                <span>Render the live prompt to preview the final text and create an execution record.</span>
+              </div>
+            )}
           </div>
         </section>
       </div>

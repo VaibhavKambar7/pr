@@ -79,6 +79,25 @@ type CreatePromptVersionInput = {
   modelParams?: Record<string, unknown>;
 };
 
+type RenderLivePromptInput = {
+  variables: Record<string, string | number | boolean | null>;
+};
+
+export type RuntimeRenderResult = {
+  executionId: string;
+  prompt: Prompt;
+  promptVersion: {
+    id: string;
+    version: number;
+    status: PromptVersionStatus;
+    model: string | null;
+    modelParams: unknown;
+    createdAt: string;
+    promotedAt: string | null;
+  };
+  renderedPrompt: string;
+};
+
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -212,4 +231,19 @@ export function rollbackPromptVersion(
       },
     },
   );
+}
+
+export function renderLivePrompt(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  input: RenderLivePromptInput,
+) {
+  return request<RuntimeRenderResult>(`/runtime/projects/${projectId}/prompts/${promptId}/render`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
+  });
 }
