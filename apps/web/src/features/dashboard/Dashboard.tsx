@@ -2,15 +2,19 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
+  createApiKey,
   createPrompt,
   createPromptVersion,
   createProject,
+  listApiKeys,
   listPrompts,
   listPromptVersions,
   listProjects,
   promotePromptVersion,
   renderLivePrompt,
+  revokeApiKey,
   rollbackPromptVersion,
+  type ApiKey,
   type AuthUser,
   type Prompt,
   type PromptVersion,
@@ -32,6 +36,10 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [projectSlug, setProjectSlug] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectMessage, setProjectMessage] = useState("Loading projects...");
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [apiKeyName, setApiKeyName] = useState("");
+  const [apiKeyMessage, setApiKeyMessage] = useState("Select a project to load API keys.");
+  const [newRawApiKey, setNewRawApiKey] = useState<string | null>(null);
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [promptName, setPromptName] = useState("");
@@ -47,16 +55,20 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [runtimeMessage, setRuntimeMessage] = useState("Promote a live version, then render it here.");
   const [renderResult, setRenderResult] = useState<RuntimeRenderResult | null>(null);
   const [isProjectError, setIsProjectError] = useState(false);
+  const [isApiKeyError, setIsApiKeyError] = useState(false);
   const [isPromptError, setIsPromptError] = useState(false);
   const [isVersionError, setIsVersionError] = useState(false);
   const [isRuntimeError, setIsRuntimeError] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [isLoadingApiKeys, setIsLoadingApiKeys] = useState(false);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isCreatingApiKey, setIsCreatingApiKey] = useState(false);
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [isRenderingPrompt, setIsRenderingPrompt] = useState(false);
+  const [revokingApiKeyId, setRevokingApiKeyId] = useState<string | null>(null);
   const [promotingVersion, setPromotingVersion] = useState<number | null>(null);
 
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
@@ -104,6 +116,61 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       isMounted = false;
     };
   }, [accessToken]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId) {
+      setApiKeys([]);
+      setNewRawApiKey(null);
+      setApiKeyMessage("Select a project to load API keys.");
+      return;
+    }
+
+    async function loadProjectApiKeys() {
+      if (!selectedProjectId) {
+        return;
+      }
+
+      setIsLoadingApiKeys(true);
+      setIsApiKeyError(false);
+      setNewRawApiKey(null);
+      setApiKeyMessage("Loading API keys...");
+
+      try {
+        const result = await listApiKeys(accessToken, selectedProjectId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setApiKeys(result.apiKeys);
+        setApiKeyMessage(
+          result.apiKeys.length === 0
+            ? "No API keys yet. Create one so applications can call runtime endpoints."
+            : "API keys loaded.",
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setApiKeys([]);
+        setIsApiKeyError(true);
+        setApiKeyMessage(error instanceof Error ? error.message : "Failed to load API keys");
+      } finally {
+        if (isMounted) {
+          setIsLoadingApiKeys(false);
+        }
+      }
+    }
+
+    void loadProjectApiKeys();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -244,6 +311,69 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       setProjectMessage(error instanceof Error ? error.message : "Failed to create project");
     } finally {
       setIsCreatingProject(false);
+    }
+  }
+
+  async function handleCreateApiKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProjectId) {
+      setIsApiKeyError(true);
+      setApiKeyMessage("Select a project before creating an API key.");
+      return;
+    }
+
+    setIsCreatingApiKey(true);
+    setIsApiKeyError(false);
+    setNewRawApiKey(null);
+    setApiKeyMessage("Creating API key...");
+
+    try {
+      const result = await createApiKey(accessToken, selectedProjectId, {
+        name: apiKeyName,
+      });
+
+      setApiKeys((currentApiKeys) => [result.apiKey, ...currentApiKeys]);
+      setNewRawApiKey(result.key);
+      setApiKeyName("");
+      setApiKeyMessage("API key created. Copy the raw key now; it will not be shown again.");
+    } catch (error) {
+      setIsApiKeyError(true);
+      setApiKeyMessage(error instanceof Error ? error.message : "Failed to create API key");
+    } finally {
+      setIsCreatingApiKey(false);
+    }
+  }
+
+  async function handleRevokeApiKey(apiKey: ApiKey) {
+    if (!selectedProjectId || apiKey.revokedAt) {
+      return;
+    }
+
+    setRevokingApiKeyId(apiKey.id);
+    setIsApiKeyError(false);
+    setApiKeyMessage(`Revoking ${apiKey.name}...`);
+
+    try {
+      await revokeApiKey(accessToken, selectedProjectId, apiKey.id);
+
+      const revokedAt = new Date().toISOString();
+      setApiKeys((currentApiKeys) =>
+        currentApiKeys.map((currentApiKey) =>
+          currentApiKey.id === apiKey.id
+            ? {
+                ...currentApiKey,
+                revokedAt,
+              }
+            : currentApiKey,
+        ),
+      );
+      setApiKeyMessage(`${apiKey.name} revoked.`);
+    } catch (error) {
+      setIsApiKeyError(true);
+      setApiKeyMessage(error instanceof Error ? error.message : "Failed to revoke API key");
+    } finally {
+      setRevokingApiKeyId(null);
     }
   }
 
@@ -504,6 +634,107 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
             </form>
 
             <p className={`status-message ${isProjectError ? "error" : ""}`}>{projectMessage}</p>
+          </div>
+        </section>
+
+        <section className="api-keys-grid">
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Application Access</span>
+              <h2>API keys</h2>
+              <p>
+                External services use these keys as bearer tokens to fetch or render live prompts at
+                runtime.
+              </p>
+            </div>
+
+            {isLoadingApiKeys ? <p className="status-message">Loading API keys...</p> : null}
+
+            {!isLoadingApiKeys && selectedProject && apiKeys.length === 0 ? (
+              <div className="empty-state">
+                <strong>No API keys yet</strong>
+                <span>Create one on the right before wiring another app to runtime endpoints.</span>
+              </div>
+            ) : null}
+
+            {!selectedProject ? (
+              <div className="empty-state">
+                <strong>No project selected</strong>
+                <span>Select or create a project before managing API keys.</span>
+              </div>
+            ) : null}
+
+            <div className="api-key-list">
+              {apiKeys.map((apiKey) => (
+                <article className={`api-key-card ${apiKey.revokedAt ? "revoked" : ""}`} key={apiKey.id}>
+                  <div>
+                    <span>{apiKey.revokedAt ? "revoked" : "active"}</span>
+                    <strong>{apiKey.name}</strong>
+                    <small>
+                      prefix {apiKey.prefix} · created {new Date(apiKey.createdAt).toLocaleString()}
+                    </small>
+                    <small>
+                      {apiKey.lastUsedAt
+                        ? `last used ${new Date(apiKey.lastUsedAt).toLocaleString()}`
+                        : "not used yet"}
+                    </small>
+                  </div>
+                  <button
+                    className="secondary-button"
+                    disabled={Boolean(apiKey.revokedAt) || revokingApiKeyId === apiKey.id}
+                    onClick={() => void handleRevokeApiKey(apiKey)}
+                    type="button"
+                  >
+                    {revokingApiKeyId === apiKey.id ? "Revoking..." : apiKey.revokedAt ? "Revoked" : "Revoke"}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="section-heading">
+              <span className="eyebrow">Create</span>
+              <h2>New API key</h2>
+              <p>The raw key is shown once. Store it in the calling application's environment.</p>
+            </div>
+
+            <form className="form-stack" onSubmit={handleCreateApiKey}>
+              <div className="field">
+                <label htmlFor="api-key-name">Key name</label>
+                <input
+                  disabled={!selectedProject}
+                  id="api-key-name"
+                  minLength={2}
+                  onChange={(event) => setApiKeyName(event.target.value)}
+                  placeholder="support-service-dev"
+                  required
+                  value={apiKeyName}
+                />
+              </div>
+
+              <button
+                className="primary-button"
+                disabled={!selectedProject || isCreatingApiKey}
+                type="submit"
+              >
+                {isCreatingApiKey ? "Creating..." : "Create API key"}
+              </button>
+            </form>
+
+            {newRawApiKey ? (
+              <div className="secret-panel">
+                <span>Raw key shown once</span>
+                <code>{newRawApiKey}</code>
+              </div>
+            ) : (
+              <div className="active-record">
+                <span>Runtime header</span>
+                <strong>Authorization: Bearer pr_...</strong>
+              </div>
+            )}
+
+            <p className={`status-message ${isApiKeyError ? "error" : ""}`}>{apiKeyMessage}</p>
           </div>
         </section>
 

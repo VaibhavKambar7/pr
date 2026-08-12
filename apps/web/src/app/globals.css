@@ -294,6 +294,7 @@ button {
 }
 
 .workspace-grid,
+.api-keys-grid,
 .registry-grid,
 .versions-grid,
 .runtime-grid {
@@ -302,6 +303,7 @@ button {
   gap: 24px;
 }
 
+.api-keys-grid,
 .registry-grid,
 .versions-grid,
 .runtime-grid {
@@ -322,6 +324,7 @@ button {
 }
 
 .project-list,
+.api-key-list,
 .prompt-list,
 .version-list {
   display: grid;
@@ -329,7 +332,8 @@ button {
 }
 
 .project-card,
-.prompt-card {
+.prompt-card,
+.api-key-card {
   display: grid;
   gap: 8px;
   width: 100%;
@@ -346,6 +350,11 @@ button {
   align-items: center;
 }
 
+.api-key-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .project-card.active,
 .prompt-card.active {
   border-color: rgba(23, 63, 53, 0.55);
@@ -354,25 +363,57 @@ button {
 }
 
 .project-card span,
-.prompt-card span {
+.prompt-card span,
+.api-key-card span {
   color: var(--accent-strong);
   font-size: 13px;
 }
 
 .project-card strong,
-.prompt-card strong {
+.prompt-card strong,
+.api-key-card strong {
   display: block;
   margin-top: 8px;
   font-size: 24px;
 }
 
 .project-card small,
-.prompt-card small {
+.prompt-card small,
+.api-key-card small {
   display: block;
   margin-top: 8px;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
+}
+
+.api-key-card.revoked {
+  opacity: 0.62;
+}
+
+.secret-panel {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(222, 107, 53, 0.45);
+  border-radius: 24px;
+  background: rgba(222, 107, 53, 0.12);
+}
+
+.secret-panel span {
+  color: var(--accent-strong);
+  font-size: 14px;
+}
+
+.secret-panel code {
+  overflow: auto;
+  padding: 14px;
+  border-radius: 16px;
+  color: #10231c;
+  background: rgba(255, 250, 240, 0.86);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .prompt-card em {
@@ -503,6 +544,7 @@ button {
   .feature-row,
   .metric-grid,
   .workspace-grid,
+  .api-keys-grid,
   .registry-grid,
   .versions-grid,
   .runtime-grid {

@@ -36,10 +36,23 @@ export type Project = {
   updatedAt: string;
 };
 
+export type ApiKey = {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+};
+
 type CreateProjectInput = {
   name: string;
   slug?: string;
   description?: string;
+};
+
+type CreateApiKeyInput = {
+  name: string;
 };
 
 export type Prompt = {
@@ -112,6 +125,10 @@ async function request<T>(path: string, init?: RequestInit) {
     throw new Error(body.error ?? "request failed");
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -152,6 +169,33 @@ export function createProject(accessToken: string, input: CreateProjectInput) {
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(input),
+  });
+}
+
+export function listApiKeys(accessToken: string, projectId: string) {
+  return request<{ apiKeys: ApiKey[] }>(`/projects/${projectId}/api-keys`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function createApiKey(accessToken: string, projectId: string, input: CreateApiKeyInput) {
+  return request<{ apiKey: ApiKey; key: string }>(`/projects/${projectId}/api-keys`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {
+  return request<void>(`/projects/${projectId}/api-keys/${apiKeyId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 }
 
