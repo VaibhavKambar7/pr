@@ -104,8 +104,9 @@ export async function registerUser(data: RegisterInput) {
     user: {
       id: user.id,
       email: user.email,
+      name: user.name,
     },
-    token: signAuthToken(user),
+    accessToken: signAuthToken(user),
   };
 }
 
@@ -126,8 +127,9 @@ export async function loginUser(data: LoginInput) {
     user: {
       id: user.id,
       email: user.email,
+      name: user.name,
     },
-    token: signAuthToken(user),
+    accessToken: signAuthToken(user),
   };
 }
 

@@ -1,4 +1,15 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { loadEnvFile } from "node:process";
 import { buildApp } from "./app.js";
+
+for (const envPath of [resolve(process.cwd(), ".env"), resolve(process.cwd(), "../../.env")]) {
+  if (existsSync(envPath)) {
+    loadEnvFile(envPath);
+    break;
+  }
+}
+
 const port = Number(process.env.PORT ?? 3001);
 const app = buildApp();
 
