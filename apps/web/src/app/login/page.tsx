@@ -6,7 +6,7 @@ import { AuthHero } from "../../features/auth/AuthHero";
 import { AuthPanel } from "../../features/auth/AuthPanel";
 import { RouteLoading } from "../../features/navigation/RouteLoading";
 import { getMe, type AuthResponse } from "../../lib/api";
-import { getStoredAccessToken, storeAuthSession } from "../../lib/auth-session";
+import { clearAuthSession, getStoredAccessToken, storeAuthSession } from "../../lib/auth-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export default function LoginPage() {
         router.replace("/dashboard");
       })
       .catch(() => {
+        clearAuthSession();
         setIsCheckingSession(false);
       });
   }, [router]);

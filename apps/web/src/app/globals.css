@@ -625,7 +625,8 @@ textarea:disabled {
   white-space: pre-wrap;
 }
 
-.empty-state {
+.empty-state,
+.section-state {
   display: grid;
   gap: 8px;
   padding: 24px;
@@ -634,7 +635,28 @@ textarea:disabled {
   background: rgba(255, 255, 255, 0.38);
 }
 
-.empty-state span {
+.section-state.loading {
+  position: relative;
+  overflow: hidden;
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.section-state.loading::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: state-sheen 1.4s ease-in-out infinite;
+}
+
+.section-state.error {
+  border-color: rgba(184, 71, 34, 0.42);
+  background: rgba(222, 107, 53, 0.1);
+}
+
+.empty-state span,
+.section-state span {
   color: var(--muted);
 }
 
@@ -677,5 +699,15 @@ textarea:disabled {
 
   100% {
     transform: translateX(260%);
+  }
+}
+
+@keyframes state-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
   }
 }

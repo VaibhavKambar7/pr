@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const token = getStoredAccessToken();
@@ -32,8 +33,13 @@ export default function DashboardPage() {
   }, [router]);
 
   function handleLogout() {
+    setIsLoggingOut(true);
     clearAuthSession();
     router.replace("/login");
+  }
+
+  if (isLoggingOut) {
+    return <RouteLoading description="Clearing your local session and returning to login." title="Logging out" />;
   }
 
   if (!accessToken || !user) {

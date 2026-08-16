@@ -10,6 +10,21 @@ import type {
   RuntimeRenderResult,
 } from "../../lib/api";
 
+type SectionStateProps = {
+  title: string;
+  description: string;
+  tone?: "empty" | "error" | "loading";
+};
+
+function SectionState({ title, description, tone = "empty" }: SectionStateProps) {
+  return (
+    <div className={`section-state ${tone}`}>
+      <strong>{title}</strong>
+      <span>{description}</span>
+    </div>
+  );
+}
+
 type DashboardSummaryProps = {
   user: AuthUser;
   projects: Project[];
@@ -101,13 +116,16 @@ export function ProjectSection({
           <p>Select the workspace your application will use at runtime.</p>
         </div>
 
-        {isLoadingProjects ? <p className="status-message">Loading projects...</p> : null}
+        {isLoadingProjects ? (
+          <SectionState
+            description="Fetching your workspaces from the API."
+            title="Loading projects"
+            tone="loading"
+          />
+        ) : null}
 
         {!isLoadingProjects && projects.length === 0 ? (
-          <div className="empty-state">
-            <strong>No projects yet</strong>
-            <span>Create one on the right. Then we can add prompts inside it.</span>
-          </div>
+          <SectionState description="Create one on the right. Then we can add prompts inside it." title="No projects yet" />
         ) : null}
 
         <div className="project-list">
@@ -152,7 +170,9 @@ export function ProjectSection({
               id="project-slug"
               minLength={2}
               onChange={(event) => onProjectSlugChange(event.target.value)}
+              pattern="[a-z0-9]+(-[a-z0-9]+)*"
               placeholder="customer-support-ai"
+              title="Use lowercase letters, numbers, and hyphens"
               value={projectSlug}
             />
           </div>
@@ -218,20 +238,26 @@ export function ApiKeysSection({
           <p>External services use these keys as bearer tokens to fetch or render live prompts at runtime.</p>
         </div>
 
-        {isLoadingApiKeys ? <p className="status-message">Loading API keys...</p> : null}
+        {isLoadingApiKeys ? (
+          <SectionState
+            description="Fetching application credentials for this project."
+            title="Loading API keys"
+            tone="loading"
+          />
+        ) : null}
 
         {!isLoadingApiKeys && selectedProject && apiKeys.length === 0 ? (
-          <div className="empty-state">
-            <strong>No API keys yet</strong>
-            <span>Create one on the right before wiring another app to runtime endpoints.</span>
-          </div>
+          <SectionState
+            description="Create one on the right before wiring another app to runtime endpoints."
+            title="No API keys yet"
+          />
         ) : null}
 
         {!selectedProject ? (
-          <div className="empty-state">
-            <strong>No project selected</strong>
-            <span>Select or create a project before managing API keys.</span>
-          </div>
+          <SectionState
+            description="Select or create a project before managing API keys."
+            title="No project selected"
+          />
         ) : null}
 
         <div className="api-key-list">
@@ -352,20 +378,26 @@ export function PromptRegistrySection({
           <p>Prompts are stable records. The actual prompt text lives in immutable versions below.</p>
         </div>
 
-        {isLoadingPrompts ? <p className="status-message">Loading prompts...</p> : null}
+        {isLoadingPrompts ? (
+          <SectionState
+            description="Fetching prompt records for the selected workspace."
+            title="Loading prompts"
+            tone="loading"
+          />
+        ) : null}
 
         {!isLoadingPrompts && selectedProject && prompts.length === 0 ? (
-          <div className="empty-state">
-            <strong>No prompts in this project</strong>
-            <span>Create a prompt record, then add versioned templates to it.</span>
-          </div>
+          <SectionState
+            description="Create a prompt record, then add versioned templates to it."
+            title="No prompts in this project"
+          />
         ) : null}
 
         {!selectedProject ? (
-          <div className="empty-state">
-            <strong>No project selected</strong>
-            <span>Select or create a project above before adding prompt records.</span>
-          </div>
+          <SectionState
+            description="Select or create a project above before adding prompt records."
+            title="No project selected"
+          />
         ) : null}
 
         <div className="prompt-list">
@@ -415,7 +447,9 @@ export function PromptRegistrySection({
               id="prompt-slug"
               minLength={2}
               onChange={(event) => onPromptSlugChange(event.target.value)}
+              pattern="[a-z0-9]+(-[a-z0-9]+)*"
               placeholder="support-reply-generator"
+              title="Use lowercase letters, numbers, and hyphens"
               value={promptSlug}
             />
           </div>
@@ -495,20 +529,23 @@ export function PromptVersionsSection({
           <p>Create immutable templates and choose exactly one live version for runtime use.</p>
         </div>
 
-        {isLoadingVersions ? <p className="status-message">Loading versions...</p> : null}
+        {isLoadingVersions ? (
+          <SectionState
+            description="Fetching immutable templates for the selected prompt."
+            title="Loading versions"
+            tone="loading"
+          />
+        ) : null}
 
         {!isLoadingVersions && selectedPrompt && promptVersions.length === 0 ? (
-          <div className="empty-state">
-            <strong>No versions yet</strong>
-            <span>Create v1 on the right. After that, promote it live.</span>
-          </div>
+          <SectionState description="Create v1 on the right. After that, promote it live." title="No versions yet" />
         ) : null}
 
         {!selectedPrompt ? (
-          <div className="empty-state">
-            <strong>No prompt selected</strong>
-            <span>Select or create a prompt above before adding versions.</span>
-          </div>
+          <SectionState
+            description="Select or create a prompt above before adding versions."
+            title="No prompt selected"
+          />
         ) : null}
 
         <div className="version-list">
@@ -696,10 +733,10 @@ export function RuntimeRenderSection({
             <pre className="rendered-prompt">{renderResult.renderedPrompt}</pre>
           </>
         ) : (
-          <div className="empty-state">
-            <strong>No render yet</strong>
-            <span>Render the live prompt to preview the final text and create an execution record.</span>
-          </div>
+          <SectionState
+            description="Render the live prompt to preview the final text and create an execution record."
+            title="No render yet"
+          />
         )}
       </div>
     </section>
@@ -741,20 +778,23 @@ export function ExecutionHistorySection({
           </p>
         </div>
 
-        {isLoadingExecutions ? <p className="status-message">Loading executions...</p> : null}
+        {isLoadingExecutions ? (
+          <SectionState
+            description="Fetching runtime calls for the selected workspace and prompt."
+            title="Loading executions"
+            tone="loading"
+          />
+        ) : null}
 
         {!isLoadingExecutions && selectedProject && executions.length === 0 ? (
-          <div className="empty-state">
-            <strong>No executions yet</strong>
-            <span>Render the live prompt above to create an execution history record.</span>
-          </div>
+          <SectionState
+            description="Render the live prompt above to create an execution history record."
+            title="No executions yet"
+          />
         ) : null}
 
         {!selectedProject ? (
-          <div className="empty-state">
-            <strong>No project selected</strong>
-            <span>Select a project before viewing execution history.</span>
-          </div>
+          <SectionState description="Select a project before viewing execution history." title="No project selected" />
         ) : null}
 
         <div className="execution-list">
@@ -794,7 +834,13 @@ export function ExecutionHistorySection({
           <p>Inspect the exact variables and rendered prompt used for this runtime call.</p>
         </div>
 
-        {isLoadingExecutionDetail ? <p className="status-message">Loading detail...</p> : null}
+        {isLoadingExecutionDetail ? (
+          <SectionState
+            description="Fetching the full inputs and rendered prompt for this execution."
+            title="Loading detail"
+            tone="loading"
+          />
+        ) : null}
 
         {executionDetail ? (
           <>
@@ -830,10 +876,10 @@ export function ExecutionHistorySection({
             </div>
           </>
         ) : (
-          <div className="empty-state">
-            <strong>No execution selected</strong>
-            <span>Select an execution from the list to inspect its details.</span>
-          </div>
+          <SectionState
+            description="Select an execution from the list to inspect its details."
+            title="No execution selected"
+          />
         )}
       </div>
     </section>

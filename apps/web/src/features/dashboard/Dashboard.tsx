@@ -42,6 +42,32 @@ type DashboardProps = {
   onLogout: () => void;
 };
 
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function validateName(value: string, label: string) {
+  const trimmedValue = value.trim();
+
+  if (trimmedValue.length < 2) {
+    throw new Error(`${label} must be at least 2 characters`);
+  }
+
+  return trimmedValue;
+}
+
+function validateOptionalSlug(value: string) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return undefined;
+  }
+
+  if (!SLUG_PATTERN.test(trimmedValue)) {
+    throw new Error("slug must use lowercase letters, numbers, and hyphens");
+  }
+
+  return trimmedValue;
+}
+
 export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -419,15 +445,28 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    let name: string;
+    let slug: string | undefined;
+
+    try {
+      name = validateName(projectName, "project name");
+      slug = validateOptionalSlug(projectSlug);
+    } catch (error) {
+      setIsProjectError(true);
+      setProjectMessage(error instanceof Error ? error.message : "Invalid project input");
+      return;
+    }
+
     setIsCreatingProject(true);
     setIsProjectError(false);
     setProjectMessage("Creating project...");
 
     try {
       const result = await createProject(accessToken, {
-        name: projectName,
-        slug: projectSlug || undefined,
-        description: projectDescription || undefined,
+        name,
+        slug,
+        description: projectDescription.trim() || undefined,
       });
 
       setProjects((currentProjects) => [result.project, ...currentProjects]);
@@ -453,6 +492,16 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    let name: string;
+
+    try {
+      name = validateName(apiKeyName, "api key name");
+    } catch (error) {
+      setIsApiKeyError(true);
+      setApiKeyMessage(error instanceof Error ? error.message : "Invalid API key input");
+      return;
+    }
+
     setIsCreatingApiKey(true);
     setIsApiKeyError(false);
     setNewRawApiKey(null);
@@ -460,7 +509,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
     try {
       const result = await createApiKey(accessToken, selectedProjectId, {
-        name: apiKeyName,
+        name,
       });
 
       setApiKeys((currentApiKeys) => [result.apiKey, ...currentApiKeys]);
@@ -516,15 +565,27 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    let name: string;
+    let slug: string | undefined;
+
+    try {
+      name = validateName(promptName, "prompt name");
+      slug = validateOptionalSlug(promptSlug);
+    } catch (error) {
+      setIsPromptError(true);
+      setPromptMessage(error instanceof Error ? error.message : "Invalid prompt input");
+      return;
+    }
+
     setIsCreatingPrompt(true);
     setIsPromptError(false);
     setPromptMessage("Creating prompt...");
 
     try {
       const result = await createPrompt(accessToken, selectedProjectId, {
-        name: promptName,
-        slug: promptSlug || undefined,
-        description: promptDescription || undefined,
+        name,
+        slug,
+        description: promptDescription.trim() || undefined,
       });
 
       setPrompts((currentPrompts) => [result.prompt, ...currentPrompts]);
@@ -550,6 +611,15 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    const template = versionTemplate.trim();
+    const model = versionModel.trim();
+
+    if (template.length < 3) {
+      setIsVersionError(true);
+      setVersionMessage("template must be at least 3 characters");
+      return;
+    }
+
     setIsCreatingVersion(true);
     setIsVersionError(false);
     setVersionMessage("Creating immutable version...");
@@ -557,8 +627,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     try {
       const modelParams = parseJsonObject(versionModelParams, "model params");
       const result = await createPromptVersion(accessToken, selectedProjectId, selectedPromptId, {
-        template: versionTemplate,
-        model: versionModel || undefined,
+        template,
+        model: model || undefined,
         modelParams,
       });
 
