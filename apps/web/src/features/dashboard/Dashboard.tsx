@@ -654,7 +654,13 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
     try {
       const action = promptVersion.status === "LIVE" ? rollbackPromptVersion : promotePromptVersion;
-      const result = await action(accessToken, selectedProjectId, selectedPromptId, promptVersion.version);
+      const result = await action(
+        accessToken,
+        selectedProjectId,
+        selectedPromptId,
+        promptVersion.version,
+        liveVersion?.version ?? null,
+      );
 
       setPromptVersions((currentVersions) =>
         currentVersions.map((currentVersion) => {

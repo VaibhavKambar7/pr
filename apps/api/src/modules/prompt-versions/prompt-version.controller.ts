@@ -9,7 +9,7 @@ import {
   promoteVersionForPrompt,
   rollbackVersionForPrompt,
 } from "./prompt-version.service.js";
-import { createPromptVersionSchema } from "./prompt-version.schema.js";
+import { createPromptVersionSchema, setLivePromptVersionSchema } from "./prompt-version.schema.js";
 
 type PromptParams = {
   projectId: string;
@@ -32,6 +32,24 @@ function toCreatePromptVersionInput(input: {
   };
 }
 
+function readIdempotencyKey(request: FastifyRequest): string | undefined {
+  const raw = request.headers["idempotency-key"];
+
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+
+  const key = Array.isArray(raw) ? raw[0] : raw;
+
+  if (key.length > 128) {
+    return undefined;
+  }
+
+  const trimmed = key.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 export async function createPromptVersionController(
   request: FastifyRequest<{ Params: PromptParams }>,
   reply: FastifyReply,
@@ -51,15 +69,25 @@ export async function createPromptVersionController(
     });
   }
 
+  const idempotencyKey = readIdempotencyKey(request);
+
+  if (idempotencyKey !== undefined && request.headers["idempotency-key"]!.length > 128) {
+    return reply.code(400).send({ error: "idempotency key must be 128 characters or fewer" });
+  }
+
   try {
-    const promptVersion = await createVersionForPrompt(
+    const result = await createVersionForPrompt(
       user.id,
       request.params.projectId,
       request.params.promptId,
       toCreatePromptVersionInput(parsedBody.data),
+      idempotencyKey,
     );
 
-    return reply.code(201).send({ promptVersion });
+    return reply
+      .header("Idempotency-Replayed", String(result.replayed))
+      .code(result.replayed ? 200 : 201)
+      .send({ promptVersion: result.promptVersion });
   } catch (error) {
     return sendPromptVersionError(reply, error);
   }
@@ -108,7 +136,7 @@ export async function getPromptVersionController(
 }
 
 export async function promotePromptVersionController(
-  request: FastifyRequest<{ Params: PromptVersionParams }>,
+  request: FastifyRequest<{ Params: PromptVersionParams; Body: { expectedLiveVersion: number | null } }>,
   reply: FastifyReply,
 ) {
   const user = requireUser(request, reply);
@@ -117,12 +145,22 @@ export async function promotePromptVersionController(
     return;
   }
 
+  const parsedBody = setLivePromptVersionSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+      issues: parsedBody.error.flatten().fieldErrors,
+    });
+  }
+
   try {
     const promptVersion = await promoteVersionForPrompt(
       user.id,
       request.params.projectId,
       request.params.promptId,
       request.params.version,
+      parsedBody.data.expectedLiveVersion,
     );
 
     return reply.code(200).send({ promptVersion });
@@ -132,7 +170,7 @@ export async function promotePromptVersionController(
 }
 
 export async function rollbackPromptVersionController(
-  request: FastifyRequest<{ Params: PromptVersionParams }>,
+  request: FastifyRequest<{ Params: PromptVersionParams; Body: { expectedLiveVersion: number | null } }>,
   reply: FastifyReply,
 ) {
   const user = requireUser(request, reply);
@@ -141,12 +179,22 @@ export async function rollbackPromptVersionController(
     return;
   }
 
+  const parsedBody = setLivePromptVersionSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+      issues: parsedBody.error.flatten().fieldErrors,
+    });
+  }
+
   try {
     const promptVersion = await rollbackVersionForPrompt(
       user.id,
       request.params.projectId,
       request.params.promptId,
       request.params.version,
+      parsedBody.data.expectedLiveVersion,
     );
 
     return reply.code(200).send({ promptVersion });

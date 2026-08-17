@@ -59,20 +59,23 @@ model Prompt {
 }
 
 model PromptVersion {
-  id          String              @id @default(cuid())
-  promptId    String
-  prompt      Prompt              @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  version     Int
-  status      PromptVersionStatus @default(DRAFT)
-  template    String
-  model       String?
-  modelParams Json?
-  executions  Execution[]
-  createdAt   DateTime            @default(now())
-  promotedAt  DateTime?
-  archivedAt  DateTime?
+  id              String              @id @default(cuid())
+  promptId        String
+  prompt          Prompt              @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  version         Int
+  status          PromptVersionStatus @default(DRAFT)
+  template        String
+  model           String?
+  modelParams     Json?
+  idempotencyKey  String?
+  requestHash     String?
+  executions      Execution[]
+  createdAt       DateTime            @default(now())
+  promotedAt      DateTime?
+  archivedAt      DateTime?
 
   @@unique([promptId, version])
+  @@unique([promptId, idempotencyKey])
   @@index([promptId, status])
 }
 

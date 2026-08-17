@@ -292,11 +292,13 @@ export function createPromptVersion(
   projectId: string,
   promptId: string,
   input: CreatePromptVersionInput,
+  idempotencyKey = crypto.randomUUID(),
 ) {
   return request<{ promptVersion: PromptVersion }>(`/projects/${projectId}/prompts/${promptId}/versions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify(input),
   });
@@ -307,6 +309,7 @@ export function promotePromptVersion(
   projectId: string,
   promptId: string,
   version: number,
+  expectedLiveVersion: number | null,
 ) {
   return request<{ promptVersion: PromptVersion }>(
     `/projects/${projectId}/prompts/${promptId}/versions/${version}/promote`,
@@ -315,6 +318,7 @@ export function promotePromptVersion(
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      body: JSON.stringify({ expectedLiveVersion }),
     },
   );
 }
@@ -324,6 +328,7 @@ export function rollbackPromptVersion(
   projectId: string,
   promptId: string,
   version: number,
+  expectedLiveVersion: number | null,
 ) {
   return request<{ promptVersion: PromptVersion }>(
     `/projects/${projectId}/prompts/${promptId}/versions/${version}/rollback`,
@@ -332,6 +337,7 @@ export function rollbackPromptVersion(
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      body: JSON.stringify({ expectedLiveVersion }),
     },
   );
 }

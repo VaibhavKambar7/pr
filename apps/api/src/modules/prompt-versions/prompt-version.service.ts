@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getPromptForProject } from "../prompts/prompt.service.js";
 import {
   createPromptVersion,
@@ -5,12 +6,20 @@ import {
   listPromptVersions,
   promotePromptVersion,
 } from "./prompt-version.repository.js";
-import type { CreatePromptVersionInput } from "./prompt-version.schema.js";
+import type { CreatePromptVersionInput, SetLivePromptVersionInput } from "./prompt-version.schema.js";
+
+export { IdempotencyKeyConflictError, PromptVersionConflictError } from "./prompt-version.repository.js";
 
 export class PromptVersionNotFoundError extends Error {
   constructor() {
     super("prompt version not found");
   }
+}
+
+function hashCreateVersionRequest(input: CreatePromptVersionInput) {
+  return createHash("sha256")
+    .update(JSON.stringify(input))
+    .digest("hex");
 }
 
 function parseVersionNumber(value: string) {
@@ -28,14 +37,11 @@ export async function createVersionForPrompt(
   projectId: string,
   promptId: string,
   input: CreatePromptVersionInput,
+  idempotencyKey?: string,
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
 
-  return createPromptVersion(promptId, {
-    template: input.template,
-    model: input.model,
-    modelParams: input.modelParams,
-  });
+  return createPromptVersion(promptId, input, idempotencyKey, hashCreateVersionRequest(input));
 }
 
 export async function listVersionsForPrompt(ownerId: string, projectId: string, promptId: string) {
@@ -70,6 +76,7 @@ async function setLiveVersionForPrompt(
   projectId: string,
   promptId: string,
   versionParam: string,
+  expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
 
@@ -83,10 +90,7 @@ async function setLiveVersionForPrompt(
     throw new PromptVersionNotFoundError();
   }
 
-  return promotePromptVersion({
-    promptId,
-    version,
-  });
+  return promotePromptVersion({ promptId, version }, expectedLiveVersion);
 }
 
 export async function promoteVersionForPrompt(
@@ -94,8 +98,9 @@ export async function promoteVersionForPrompt(
   projectId: string,
   promptId: string,
   versionParam: string,
+  expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
-  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam);
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion);
 }
 
 export async function rollbackVersionForPrompt(
@@ -103,6 +108,7 @@ export async function rollbackVersionForPrompt(
   projectId: string,
   promptId: string,
   versionParam: string,
+  expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
-  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam);
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion);
 }

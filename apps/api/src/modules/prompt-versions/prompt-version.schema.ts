@@ -12,3 +12,11 @@ export const createPromptVersionSchema = z
 export type CreatePromptVersionInput = Omit<z.infer<typeof createPromptVersionSchema>, "modelParams"> & {
   modelParams?: Prisma.InputJsonValue;
 };
+
+export const setLivePromptVersionSchema = z
+  .object({
+    expectedLiveVersion: z.number().int().positive().nullable(),
+  })
+  .strict();
+
+export type SetLivePromptVersionInput = z.infer<typeof setLivePromptVersionSchema>;

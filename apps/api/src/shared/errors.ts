@@ -2,7 +2,11 @@ import type { FastifyReply } from "fastify";
 import { ApiKeyNotFoundError } from "../modules/api-keys/api-key.service.js";
 import { ExecutionNotFoundError } from "../modules/executions/execution.service.js";
 import { ProjectConflictError, ProjectNotFoundError } from "../modules/projects/project.service.js";
-import { PromptVersionNotFoundError } from "../modules/prompt-versions/prompt-version.service.js";
+import {
+  IdempotencyKeyConflictError,
+  PromptVersionConflictError,
+  PromptVersionNotFoundError,
+} from "../modules/prompt-versions/prompt-version.service.js";
 import { PromptConflictError, PromptNotFoundError } from "../modules/prompts/prompt.service.js";
 import {
   LivePromptVersionNotFoundError,
@@ -51,6 +55,14 @@ export function sendPromptVersionError(reply: FastifyReply, error: unknown) {
 
   if (error instanceof PromptVersionNotFoundError) {
     return reply.code(404).send({ error: error.message });
+  }
+
+  if (error instanceof IdempotencyKeyConflictError) {
+    return reply.code(409).send({ error: error.message });
+  }
+
+  if (error instanceof PromptVersionConflictError) {
+    return reply.code(409).send({ error: error.message });
   }
 
   const message = error instanceof Error ? error.message : "prompt version operation failed";
