@@ -620,6 +620,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    const idempotencyKey = crypto.randomUUID();
+
     setIsCreatingVersion(true);
     setIsVersionError(false);
     setVersionMessage("Creating immutable version...");
@@ -630,7 +632,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
         template,
         model: model || undefined,
         modelParams,
-      });
+      }, idempotencyKey);
 
       setPromptVersions((currentVersions) => [result.promptVersion, ...currentVersions]);
       setVersionTemplate("");

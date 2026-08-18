@@ -292,7 +292,7 @@ export function createPromptVersion(
   projectId: string,
   promptId: string,
   input: CreatePromptVersionInput,
-  idempotencyKey = crypto.randomUUID(),
+  idempotencyKey: string,
 ) {
   return request<{ promptVersion: PromptVersion }>(`/projects/${projectId}/prompts/${promptId}/versions`, {
     method: "POST",
