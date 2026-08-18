@@ -25,6 +25,7 @@ import {
   type Project,
   type RuntimeRenderResult,
 } from "../../lib/api";
+import { versionIdempotencyKey } from "../../lib/crypto";
 import { parseJsonObject, parseTemplateVariables } from "../../lib/json";
 import {
   ApiKeysSection,
@@ -620,14 +621,27 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
-    const idempotencyKey = crypto.randomUUID();
+    let modelParams: Record<string, unknown> | undefined;
+
+    try {
+      modelParams = parseJsonObject(versionModelParams, "model params");
+    } catch (error) {
+      setIsVersionError(true);
+      setVersionMessage(error instanceof Error ? error.message : "Invalid model params");
+      return;
+    }
+
+    const idempotencyKey = await versionIdempotencyKey(selectedPromptId, {
+      template,
+      model: model || undefined,
+      modelParams,
+    });
 
     setIsCreatingVersion(true);
     setIsVersionError(false);
     setVersionMessage("Creating immutable version...");
 
     try {
-      const modelParams = parseJsonObject(versionModelParams, "model params");
       const result = await createPromptVersion(accessToken, selectedProjectId, selectedPromptId, {
         template,
         model: model || undefined,
