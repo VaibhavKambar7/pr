@@ -647,6 +647,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
     const idempotencyKey = await versionIdempotencyKey(selectedPromptId, {
       template,
+      variableSchema,
       model: model || undefined,
       modelParams,
     });

@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import { extractTemplateVariables, InvalidVariableSchemaError, SchemaTemplateMismatchError, validatePromptVariableSchema } from "@pr/shared";
+import {
+  extractTemplateVariables,
+  generateVariableSchemaFromTemplate,
+  InvalidVariableSchemaError,
+  SchemaTemplateMismatchError,
+  validatePromptVariableSchema,
+} from "@pr/shared";
 import { getPromptForProject } from "../prompts/prompt.service.js";
 import {
   createPromptVersion,
@@ -46,10 +52,11 @@ export async function createVersionForPrompt(
   idempotencyKey?: string,
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
+  const variableSchema = input.variableSchema ?? generateVariableSchemaFromTemplate(input.template);
 
-  if (input.variableSchema) {
+  if (variableSchema) {
     const templateVariables = extractTemplateVariables(input.template);
-    const { issues } = validatePromptVariableSchema(input.variableSchema, templateVariables);
+    const { issues } = validatePromptVariableSchema(variableSchema, templateVariables);
 
     if (issues.length > 0) {
       const hasSchemaStructureIssues = issues.some(
@@ -68,7 +75,17 @@ export async function createVersionForPrompt(
     }
   }
 
-  return createPromptVersion(promptId, input, idempotencyKey, hashCreateVersionRequest(input));
+  const inputWithVariableSchema = {
+    ...input,
+    variableSchema,
+  };
+
+  return createPromptVersion(
+    promptId,
+    inputWithVariableSchema,
+    idempotencyKey,
+    hashCreateVersionRequest(inputWithVariableSchema),
+  );
 }
 
 export async function listVersionsForPrompt(ownerId: string, projectId: string, promptId: string) {

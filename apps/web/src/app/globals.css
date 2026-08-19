@@ -282,6 +282,43 @@ textarea:disabled {
   color: var(--accent-strong);
 }
 
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 16px 18px;
+  border: 1px solid rgba(23, 63, 53, 0.22);
+  border-radius: 20px;
+  color: var(--forest);
+  background: rgba(215, 234, 223, 0.96);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.toast.error {
+  border-color: rgba(184, 71, 34, 0.35);
+  color: var(--accent-strong);
+  background: rgba(255, 244, 215, 0.96);
+}
+
+.toast span {
+  line-height: 1.45;
+}
+
+.toast button {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 10px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+}
+
 .route-state-shell {
   display: grid;
   place-items: center;

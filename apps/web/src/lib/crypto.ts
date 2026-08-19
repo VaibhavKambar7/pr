@@ -8,10 +8,16 @@ export async function sha256Hex(input: string): Promise<string> {
 
 export async function versionIdempotencyKey(
   promptId: string,
-  input: { template: string; model?: string; modelParams?: Record<string, unknown> },
+  input: {
+    template: string;
+    variableSchema?: Record<string, unknown>;
+    model?: string;
+    modelParams?: Record<string, unknown>;
+  },
 ): Promise<string> {
   const payload = JSON.stringify({
     template: input.template,
+    variableSchema: input.variableSchema ?? null,
     model: input.model ?? null,
     modelParams: input.modelParams ?? null,
   });

@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { prisma } from "@pr/database";
 import { apiKeyRoutes } from "./modules/api-keys/api-key.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -11,6 +12,13 @@ import { runtimeRoutes } from "./modules/runtime/runtime.routes.js";
 export const buildApp = () => {
   const app = Fastify({
     logger: true,
+  });
+
+  void app.register(cors, {
+    origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/],
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
+    exposedHeaders: ["Idempotency-Replayed"],
   });
 
   app.get("/health", async () => {
