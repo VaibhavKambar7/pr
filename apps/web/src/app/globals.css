@@ -31,6 +31,11 @@ html {
   background: var(--background);
 }
 
+html,
+body {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   color: var(--foreground);
@@ -71,7 +76,7 @@ summary:focus-visible {
 
 .page-shell {
   min-height: 100vh;
-  padding: 24px;
+  padding: 20px;
   background: var(--background);
 }
 
@@ -85,7 +90,8 @@ summary:focus-visible {
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: calc(100vh - 48px);
+  height: calc(100vh - 40px);
+  min-height: 640px;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -98,7 +104,7 @@ summary:focus-visible {
   flex-direction: column;
   justify-content: center;
   min-height: 100%;
-  padding: clamp(40px, 6vw, 80px);
+  padding: clamp(36px, 5vw, 72px);
   border-right: 1px solid var(--border);
   background: #fafafa;
 }
@@ -125,9 +131,9 @@ summary:focus-visible {
 
 .hero-title {
   max-width: 620px;
-  margin: 28px 0 18px;
+  margin: 24px 0 16px;
   color: var(--foreground);
-  font-size: clamp(44px, 5.2vw, 76px);
+  font-size: clamp(40px, 4.7vw, 68px);
   font-weight: 650;
   letter-spacing: -0.065em;
   line-height: 0.96;
@@ -146,7 +152,7 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 48px;
+  margin-top: 38px;
 }
 
 .feature-pill,
@@ -160,8 +166,8 @@ summary:focus-visible {
 }
 
 .feature-pill {
-  min-height: 112px;
-  padding: 16px;
+  min-height: 96px;
+  padding: 14px;
 }
 
 .feature-pill strong,
@@ -211,14 +217,14 @@ summary:focus-visible {
   min-height: 100%;
   border: 0;
   border-radius: 0;
-  padding: clamp(40px, 6vw, 80px);
+  padding: clamp(36px, 5vw, 72px);
   color: var(--foreground);
   background: var(--card);
   box-shadow: none;
 }
 
 .auth-heading {
-  max-width: 440px;
+  width: min(100%, 420px);
 }
 
 .auth-heading .eyebrow,
@@ -255,7 +261,8 @@ summary:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  max-width: 440px;
+  width: min(100%, 420px);
+  height: 48px;
   padding: 4px;
   border: 1px solid #e4e4e7;
   border-radius: 12px;
@@ -265,7 +272,8 @@ summary:focus-visible {
 .ui-tabs-trigger {
   border: 0;
   border-radius: 9px;
-  padding: 10px 14px;
+  min-height: 38px;
+  padding: 8px 14px;
   color: #71717a;
   background: transparent;
   font-weight: 500;
@@ -278,7 +286,7 @@ summary:focus-visible {
 
 .form-stack {
   display: grid;
-  max-width: 440px;
+  width: min(100%, 420px);
   gap: 14px;
   margin-top: 20px;
 }
@@ -385,7 +393,7 @@ summary:focus-visible {
 }
 
 .status-message {
-  max-width: 440px;
+  width: min(100%, 420px);
   margin: 0;
   font-size: 14px;
 }
@@ -867,6 +875,7 @@ summary:focus-visible {
   }
 
   .hero-grid {
+    height: auto;
     min-height: auto;
   }
 
@@ -886,6 +895,24 @@ summary:focus-visible {
   .toast {
     right: 16px;
     bottom: 16px;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 901px) {
+  .hero-grid {
+    min-height: 560px;
+  }
+
+  .feature-row {
+    display: none;
+  }
+
+  .hero-title {
+    font-size: clamp(38px, 4.3vw, 60px);
+  }
+
+  .hero-copy {
+    font-size: clamp(16px, 1.5vw, 20px);
   }
 }
 
