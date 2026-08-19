@@ -708,7 +708,7 @@ export function RuntimeRenderSection({
           <span className="eyebrow">Runtime</span>
           <h2>Render live prompt</h2>
           <p>
-            This simulates what an application does at runtime: ask Promptu for the current live prompt
+            This simulates what an application does at runtime: ask Pr for the current live prompt
             without redeploying.
           </p>
         </div>

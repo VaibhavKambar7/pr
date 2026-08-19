@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <RouteLoading
       description="Checking your local session and sending you to the right workspace."
-      title="Opening Promptu"
+      title="Opening Pr"
     />
   );
 }

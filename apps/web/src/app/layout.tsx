@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata = {
-  title: "Promptu",
+  title: "Pr",
   description: "Prompt infrastructure for developer teams.",
 };
 

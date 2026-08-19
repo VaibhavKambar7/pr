@@ -1,6 +1,6 @@
 import type { AuthResponse } from "./api";
 
-const TOKEN_STORAGE_KEY = "promptu.accessToken";
+const TOKEN_STORAGE_KEY = "pr.accessToken";
 
 export function getStoredAccessToken() {
   if (typeof window === "undefined") {

@@ -4,7 +4,7 @@ export function AuthHero() {
       <span className="eyebrow">Prompt infrastructure, not prompt chaos</span>
       <h1 className="hero-title">Ship prompts like product code.</h1>
       <p className="hero-copy">
-        Promptu lets teams manage live prompt versions outside app deploys, with runtime delivery, API
+        Pr lets teams manage live prompt versions outside app deploys, with runtime delivery, API
         keys, rollback, and execution history baked into the workflow.
       </p>
 
