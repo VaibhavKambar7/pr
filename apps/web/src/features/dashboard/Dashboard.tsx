@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, type ReactNode } from "react";
 import {
   createApiKey,
   createPrompt,
@@ -43,6 +43,41 @@ type DashboardProps = {
   onLogout: () => void;
 };
 
+type DashboardView = "projects" | "api-keys" | "prompts" | "versions" | "runtime" | "history";
+
+const DASHBOARD_VIEWS: Array<{ id: DashboardView; label: string; description: string }> = [
+  {
+    id: "projects",
+    label: "Projects",
+    description: "Workspaces and ownership",
+  },
+  {
+    id: "api-keys",
+    label: "API keys",
+    description: "Runtime application access",
+  },
+  {
+    id: "prompts",
+    label: "Prompts",
+    description: "Registry records",
+  },
+  {
+    id: "versions",
+    label: "Versions",
+    description: "Immutable releases",
+  },
+  {
+    id: "runtime",
+    label: "Runtime",
+    description: "Render live prompt",
+  },
+  {
+    id: "history",
+    label: "History",
+    description: "Execution observability",
+  },
+];
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function validateName(value: string, label: string) {
@@ -70,6 +105,7 @@ function validateOptionalSlug(value: string) {
 }
 
 export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
+  const [activeView, setActiveView] = useState<DashboardView>("projects");
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("");
@@ -123,6 +159,147 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
   const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
   const liveVersion = promptVersions.find((promptVersion) => promptVersion.status === "LIVE") ?? null;
+
+  const projectSection = (
+    <ProjectSection
+      isCreatingProject={isCreatingProject}
+      isLoadingProjects={isLoadingProjects}
+      isProjectError={isProjectError}
+      onCreateProject={handleCreateProject}
+      onProjectDescriptionChange={setProjectDescription}
+      onProjectNameChange={setProjectName}
+      onProjectSlugChange={setProjectSlug}
+      onSelectProject={setSelectedProjectId}
+      projectDescription={projectDescription}
+      projectMessage={projectMessage}
+      projectName={projectName}
+      projectSlug={projectSlug}
+      projects={projects}
+      selectedProjectId={selectedProjectId}
+    />
+  );
+
+  const apiKeysSection = (
+    <ApiKeysSection
+      apiKeyMessage={apiKeyMessage}
+      apiKeyName={apiKeyName}
+      apiKeys={apiKeys}
+      isApiKeyError={isApiKeyError}
+      isCreatingApiKey={isCreatingApiKey}
+      isLoadingApiKeys={isLoadingApiKeys}
+      newRawApiKey={newRawApiKey}
+      onApiKeyNameChange={setApiKeyName}
+      onCreateApiKey={handleCreateApiKey}
+      onRevokeApiKey={(apiKey) => void handleRevokeApiKey(apiKey)}
+      revokingApiKeyId={revokingApiKeyId}
+      selectedProject={selectedProject}
+    />
+  );
+
+  const promptSection = (
+    <PromptRegistrySection
+      isCreatingPrompt={isCreatingPrompt}
+      isLoadingPrompts={isLoadingPrompts}
+      isPromptError={isPromptError}
+      onCreatePrompt={handleCreatePrompt}
+      onPromptDescriptionChange={setPromptDescription}
+      onPromptNameChange={setPromptName}
+      onPromptSlugChange={setPromptSlug}
+      onSelectPrompt={setSelectedPromptId}
+      promptDescription={promptDescription}
+      promptMessage={promptMessage}
+      promptName={promptName}
+      prompts={prompts}
+      promptSlug={promptSlug}
+      selectedProject={selectedProject}
+      selectedPrompt={selectedPrompt}
+      selectedPromptId={selectedPromptId}
+    />
+  );
+
+  const versionSection = (
+    <PromptVersionsSection
+      isCreatingVersion={isCreatingVersion}
+      isLoadingVersions={isLoadingVersions}
+      isVersionError={isVersionError}
+      isVersionVariableSchemaDirty={isVersionVariableSchemaDirty}
+      liveVersion={liveVersion}
+      onCreateVersion={handleCreateVersion}
+      onPromoteVersion={(promptVersion) => void handlePromoteVersion(promptVersion)}
+      onVersionModelChange={setVersionModel}
+      onVersionModelParamsChange={setVersionModelParams}
+      onVersionTemplateChange={setVersionTemplate}
+      onVersionVariableSchemaChange={(value) => {
+        setVersionVariableSchema(value);
+        setIsVersionVariableSchemaDirty(true);
+      }}
+      onVersionVariableSchemaGenerate={() => {
+        const variables = Array.from(
+          new Set(Array.from(versionTemplate.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g)).map((m) => m[1])),
+        );
+
+        setVersionVariableSchema(
+          JSON.stringify(
+            {
+              type: "object",
+              properties: Object.fromEntries(variables.map((variable) => [variable, { type: "string", minLength: 1 }])),
+              required: variables,
+              additionalProperties: false,
+            },
+            null,
+            2,
+          ),
+        );
+        setIsVersionVariableSchemaDirty(false);
+      }}
+      promotingVersion={promotingVersion}
+      promptVersions={promptVersions}
+      selectedPrompt={selectedPrompt}
+      versionMessage={versionMessage}
+      versionModel={versionModel}
+      versionModelParams={versionModelParams}
+      versionTemplate={versionTemplate}
+      versionVariableSchema={versionVariableSchema}
+    />
+  );
+
+  const runtimeSection = (
+    <RuntimeRenderSection
+      isRenderingPrompt={isRenderingPrompt}
+      isRuntimeError={isRuntimeError}
+      liveVersion={liveVersion}
+      onRenderLivePrompt={handleRenderLivePrompt}
+      onRuntimeVariablesChange={setRuntimeVariables}
+      renderResult={renderResult}
+      runtimeMessage={runtimeMessage}
+      runtimeVariables={runtimeVariables}
+      selectedProject={selectedProject}
+      selectedPrompt={selectedPrompt}
+    />
+  );
+
+  const historySection = (
+    <ExecutionHistorySection
+      executionDetail={executionDetail}
+      executionMessage={executionMessage}
+      executions={executions}
+      isExecutionError={isExecutionError}
+      isLoadingExecutionDetail={isLoadingExecutionDetail}
+      isLoadingExecutions={isLoadingExecutions}
+      onSelectExecution={setSelectedExecutionId}
+      selectedExecutionId={selectedExecutionId}
+      selectedProject={selectedProject}
+    />
+  );
+
+  const activeSectionByView: Record<DashboardView, ReactNode> = {
+    projects: projectSection,
+    "api-keys": apiKeysSection,
+    prompts: promptSection,
+    versions: versionSection,
+    runtime: runtimeSection,
+    history: historySection,
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -799,122 +976,23 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
           user={user}
         />
 
-        <ProjectSection
-          isCreatingProject={isCreatingProject}
-          isLoadingProjects={isLoadingProjects}
-          isProjectError={isProjectError}
-          onCreateProject={handleCreateProject}
-          onProjectDescriptionChange={setProjectDescription}
-          onProjectNameChange={setProjectName}
-          onProjectSlugChange={setProjectSlug}
-          onSelectProject={setSelectedProjectId}
-          projectDescription={projectDescription}
-          projectMessage={projectMessage}
-          projectName={projectName}
-          projectSlug={projectSlug}
-          projects={projects}
-          selectedProjectId={selectedProjectId}
-        />
+        <section className="dashboard-console">
+          <nav className="dashboard-nav" aria-label="Dashboard sections">
+            {DASHBOARD_VIEWS.map((view) => (
+              <button
+                className={`dashboard-nav-item ${activeView === view.id ? "active" : ""}`}
+                key={view.id}
+                onClick={() => setActiveView(view.id)}
+                type="button"
+              >
+                <span>{view.label}</span>
+                <small>{view.description}</small>
+              </button>
+            ))}
+          </nav>
 
-        <ApiKeysSection
-          apiKeyMessage={apiKeyMessage}
-          apiKeyName={apiKeyName}
-          apiKeys={apiKeys}
-          isApiKeyError={isApiKeyError}
-          isCreatingApiKey={isCreatingApiKey}
-          isLoadingApiKeys={isLoadingApiKeys}
-          newRawApiKey={newRawApiKey}
-          onApiKeyNameChange={setApiKeyName}
-          onCreateApiKey={handleCreateApiKey}
-          onRevokeApiKey={(apiKey) => void handleRevokeApiKey(apiKey)}
-          revokingApiKeyId={revokingApiKeyId}
-          selectedProject={selectedProject}
-        />
-
-        <PromptRegistrySection
-          isCreatingPrompt={isCreatingPrompt}
-          isLoadingPrompts={isLoadingPrompts}
-          isPromptError={isPromptError}
-          onCreatePrompt={handleCreatePrompt}
-          onPromptDescriptionChange={setPromptDescription}
-          onPromptNameChange={setPromptName}
-          onPromptSlugChange={setPromptSlug}
-          onSelectPrompt={setSelectedPromptId}
-          promptDescription={promptDescription}
-          promptMessage={promptMessage}
-          promptName={promptName}
-          prompts={prompts}
-          promptSlug={promptSlug}
-          selectedProject={selectedProject}
-          selectedPrompt={selectedPrompt}
-          selectedPromptId={selectedPromptId}
-        />
-
-        <PromptVersionsSection
-          isCreatingVersion={isCreatingVersion}
-          isLoadingVersions={isLoadingVersions}
-          isVersionError={isVersionError}
-          isVersionVariableSchemaDirty={isVersionVariableSchemaDirty}
-          liveVersion={liveVersion}
-          onCreateVersion={handleCreateVersion}
-          onPromoteVersion={(promptVersion) => void handlePromoteVersion(promptVersion)}
-          onVersionModelChange={setVersionModel}
-          onVersionModelParamsChange={setVersionModelParams}
-          onVersionTemplateChange={setVersionTemplate}
-          onVersionVariableSchemaChange={(value) => {
-            setVersionVariableSchema(value);
-            setIsVersionVariableSchemaDirty(true);
-          }}
-          onVersionVariableSchemaGenerate={() => {
-            setVersionVariableSchema(
-              JSON.stringify(
-                { type: "object", properties: Object.fromEntries(
-                  Array.from(versionTemplate.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g))
-                    .map((m) => [m[1], { type: "string", minLength: 1 }]),
-                ), required: Array.from(new Set(
-                  Array.from(versionTemplate.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g))
-                    .map((m) => m[1] as string),
-                )), additionalProperties: false },
-                null,
-                2,
-              ),
-            );
-            setIsVersionVariableSchemaDirty(false);
-          }}
-          promotingVersion={promotingVersion}
-          promptVersions={promptVersions}
-          selectedPrompt={selectedPrompt}
-          versionMessage={versionMessage}
-          versionModel={versionModel}
-          versionModelParams={versionModelParams}
-          versionTemplate={versionTemplate}
-          versionVariableSchema={versionVariableSchema}
-        />
-
-        <RuntimeRenderSection
-          isRenderingPrompt={isRenderingPrompt}
-          isRuntimeError={isRuntimeError}
-          liveVersion={liveVersion}
-          onRenderLivePrompt={handleRenderLivePrompt}
-          onRuntimeVariablesChange={setRuntimeVariables}
-          renderResult={renderResult}
-          runtimeMessage={runtimeMessage}
-          runtimeVariables={runtimeVariables}
-          selectedProject={selectedProject}
-          selectedPrompt={selectedPrompt}
-        />
-
-        <ExecutionHistorySection
-          executionDetail={executionDetail}
-          executionMessage={executionMessage}
-          executions={executions}
-          isExecutionError={isExecutionError}
-          isLoadingExecutionDetail={isLoadingExecutionDetail}
-          isLoadingExecutions={isLoadingExecutions}
-          onSelectExecution={setSelectedExecutionId}
-          selectedExecutionId={selectedExecutionId}
-          selectedProject={selectedProject}
-        />
+          <div className="dashboard-main">{activeSectionByView[activeView]}</div>
+        </section>
       </div>
     </main>
   );

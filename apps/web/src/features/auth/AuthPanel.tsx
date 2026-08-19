@@ -1,6 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Tabs, TabsTrigger } from "../../components/ui/tabs";
 import { login, register, type AuthResponse } from "../../lib/api";
 import { Toast } from "../feedback/Toast";
 
@@ -98,31 +102,37 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
   return (
     <>
-      <section className="auth-card">
-        <div className="tabs" aria-label="Authentication mode">
-          <button
-            className={`tab ${mode === "login" ? "active" : ""}`}
+      <Card as="section" className="auth-card">
+        <div className="auth-heading">
+          <span className="eyebrow">console</span>
+          <h2>Sign in to Pr</h2>
+          <p>Manage projects, prompt versions, API keys, and runtime history.</p>
+        </div>
+
+        <Tabs aria-label="Authentication mode">
+          <TabsTrigger
+            active={mode === "login"}
             disabled={isSubmitting}
             onClick={() => setMode("login")}
             type="button"
           >
             Log in
-          </button>
-          <button
-            className={`tab ${mode === "register" ? "active" : ""}`}
+          </TabsTrigger>
+          <TabsTrigger
+            active={mode === "register"}
             disabled={isSubmitting}
             onClick={() => setMode("register")}
             type="button"
           >
             Register
-          </button>
-        </div>
+          </TabsTrigger>
+        </Tabs>
 
         <form className="form-stack" onSubmit={handleSubmit}>
           {mode === "register" ? (
             <div className="field">
               <label htmlFor="name">Name</label>
-              <input
+              <Input
                 disabled={isSubmitting}
                 id="name"
                 autoComplete="name"
@@ -137,7 +147,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
           <div className="field">
             <label htmlFor="email">Email</label>
-            <input
+            <Input
               disabled={isSubmitting}
               id="email"
               autoComplete="email"
@@ -151,7 +161,7 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
           <div className="field">
             <label htmlFor="password">Password</label>
-            <input
+            <Input
               disabled={isSubmitting}
               id="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
@@ -164,13 +174,13 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
             />
           </div>
 
-          <button className="primary-button" disabled={isSubmitting} type="submit">
+          <Button disabled={isSubmitting} type="submit">
             {isSubmitting ? "Working..." : mode === "login" ? "Enter dashboard" : "Create account"}
-          </button>
+          </Button>
         </form>
 
         <p className={`status-message ${isError ? "error" : ""}`}>{message}</p>
-      </section>
+      </Card>
 
       {toastMessage ? (
         <Toast message={toastMessage} onDismiss={() => setToastMessage("")} tone={toastTone} />

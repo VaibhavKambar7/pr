@@ -1,3 +1,5 @@
+import { Button } from "../../components/ui/button";
+
 type ToastProps = {
   message: string;
   tone?: "error" | "success";
@@ -8,9 +10,9 @@ export function Toast({ message, tone = "error", onDismiss }: ToastProps) {
   return (
     <div className={`toast ${tone}`} role="status">
       <span>{message}</span>
-      <button aria-label="Dismiss notification" onClick={onDismiss} type="button">
+      <Button aria-label="Dismiss notification" onClick={onDismiss} type="button" variant="ghost">
         Dismiss
-      </button>
+      </Button>
     </div>
   );
 }

@@ -9,6 +9,11 @@ import type {
   Project,
   RuntimeRenderResult,
 } from "../../lib/api";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 
 type SectionStateProps = {
   title: string;
@@ -41,7 +46,7 @@ export function DashboardSummary({
   onLogout,
 }: DashboardSummaryProps) {
   return (
-    <section className="dashboard-card">
+    <Card as="section" className="dashboard-card-hero">
       <div className="dashboard-header">
         <div>
           <span className="eyebrow">Admin dashboard</span>
@@ -51,9 +56,9 @@ export function DashboardSummary({
             one of these projects.
           </p>
         </div>
-        <button className="secondary-button" onClick={onLogout}>
+        <Button onClick={onLogout} variant="secondary">
           Log out
-        </button>
+        </Button>
       </div>
 
       <div className="metric-grid">
@@ -70,7 +75,7 @@ export function DashboardSummary({
           <strong>{liveVersion ? `v${liveVersion.version}` : "none"}</strong>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -109,7 +114,7 @@ export function ProjectSection({
 }: ProjectSectionProps) {
   return (
     <section className="workspace-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Projects</span>
           <h2>Workspaces</h2>
@@ -130,21 +135,22 @@ export function ProjectSection({
 
         <div className="project-list">
           {projects.map((project) => (
-            <button
+            <Button
               className={`project-card ${project.id === selectedProjectId ? "active" : ""}`}
               key={project.id}
               onClick={() => onSelectProject(project.id)}
               type="button"
+              variant="ghost"
             >
               <span>{project.slug}</span>
               <strong>{project.name}</strong>
               <small>{project.description || "No description yet"}</small>
-            </button>
+            </Button>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Create</span>
           <h2>New project</h2>
@@ -154,7 +160,7 @@ export function ProjectSection({
         <form className="form-stack" onSubmit={onCreateProject}>
           <div className="field">
             <label htmlFor="project-name">Project name</label>
-            <input
+            <Input
               id="project-name"
               minLength={2}
               onChange={(event) => onProjectNameChange(event.target.value)}
@@ -166,7 +172,7 @@ export function ProjectSection({
 
           <div className="field">
             <label htmlFor="project-slug">Slug optional</label>
-            <input
+            <Input
               id="project-slug"
               minLength={2}
               onChange={(event) => onProjectSlugChange(event.target.value)}
@@ -179,7 +185,7 @@ export function ProjectSection({
 
           <div className="field">
             <label htmlFor="project-description">Description optional</label>
-            <textarea
+            <Textarea
               id="project-description"
               maxLength={500}
               onChange={(event) => onProjectDescriptionChange(event.target.value)}
@@ -189,13 +195,13 @@ export function ProjectSection({
             />
           </div>
 
-          <button className="primary-button" disabled={isCreatingProject} type="submit">
+          <Button disabled={isCreatingProject} type="submit">
             {isCreatingProject ? "Creating..." : "Create project"}
-          </button>
+          </Button>
         </form>
 
         <p className={`status-message ${isProjectError ? "error" : ""}`}>{projectMessage}</p>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -231,7 +237,7 @@ export function ApiKeysSection({
 }: ApiKeysSectionProps) {
   return (
     <section className="api-keys-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Application Access</span>
           <h2>API keys</h2>
@@ -275,20 +281,20 @@ export function ApiKeysSection({
                     : "not used yet"}
                 </small>
               </div>
-              <button
-                className="secondary-button"
+              <Button
                 disabled={Boolean(apiKey.revokedAt) || revokingApiKeyId === apiKey.id}
                 onClick={() => onRevokeApiKey(apiKey)}
                 type="button"
+                variant="secondary"
               >
                 {revokingApiKeyId === apiKey.id ? "Revoking..." : apiKey.revokedAt ? "Revoked" : "Revoke"}
-              </button>
+              </Button>
             </article>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Create</span>
           <h2>New API key</h2>
@@ -298,7 +304,7 @@ export function ApiKeysSection({
         <form className="form-stack" onSubmit={onCreateApiKey}>
           <div className="field">
             <label htmlFor="api-key-name">Key name</label>
-            <input
+            <Input
               disabled={!selectedProject}
               id="api-key-name"
               minLength={2}
@@ -309,9 +315,9 @@ export function ApiKeysSection({
             />
           </div>
 
-          <button className="primary-button" disabled={!selectedProject || isCreatingApiKey} type="submit">
+          <Button disabled={!selectedProject || isCreatingApiKey} type="submit">
             {isCreatingApiKey ? "Creating..." : "Create API key"}
-          </button>
+          </Button>
         </form>
 
         {newRawApiKey ? (
@@ -327,7 +333,7 @@ export function ApiKeysSection({
         )}
 
         <p className={`status-message ${isApiKeyError ? "error" : ""}`}>{apiKeyMessage}</p>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -371,7 +377,7 @@ export function PromptRegistrySection({
 }: PromptRegistrySectionProps) {
   return (
     <section className="registry-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Prompt Registry</span>
           <h2>{selectedProject ? selectedProject.name : "Select a project"}</h2>
@@ -402,11 +408,12 @@ export function PromptRegistrySection({
 
         <div className="prompt-list">
           {prompts.map((prompt) => (
-            <button
+            <Button
               className={`prompt-card ${prompt.id === selectedPromptId ? "active" : ""}`}
               key={prompt.id}
               onClick={() => onSelectPrompt(prompt.id)}
               type="button"
+              variant="ghost"
             >
               <div>
                 <span>{prompt.slug}</span>
@@ -414,12 +421,12 @@ export function PromptRegistrySection({
                 <small>{prompt.description || "No description yet"}</small>
               </div>
               <em>{prompt.id === selectedPromptId ? "selected" : "registry"}</em>
-            </button>
+            </Button>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Create</span>
           <h2>New prompt</h2>
@@ -429,7 +436,7 @@ export function PromptRegistrySection({
         <form className="form-stack" onSubmit={onCreatePrompt}>
           <div className="field">
             <label htmlFor="prompt-name">Prompt name</label>
-            <input
+            <Input
               disabled={!selectedProject}
               id="prompt-name"
               minLength={2}
@@ -442,7 +449,7 @@ export function PromptRegistrySection({
 
           <div className="field">
             <label htmlFor="prompt-slug">Slug optional</label>
-            <input
+            <Input
               disabled={!selectedProject}
               id="prompt-slug"
               minLength={2}
@@ -456,7 +463,7 @@ export function PromptRegistrySection({
 
           <div className="field">
             <label htmlFor="prompt-description">Description optional</label>
-            <textarea
+            <Textarea
               disabled={!selectedProject}
               id="prompt-description"
               maxLength={500}
@@ -467,9 +474,9 @@ export function PromptRegistrySection({
             />
           </div>
 
-          <button className="primary-button" disabled={!selectedProject || isCreatingPrompt} type="submit">
+          <Button disabled={!selectedProject || isCreatingPrompt} type="submit">
             {isCreatingPrompt ? "Creating..." : "Create prompt"}
-          </button>
+          </Button>
         </form>
 
         <div className="active-record">
@@ -478,7 +485,7 @@ export function PromptRegistrySection({
         </div>
 
         <p className={`status-message ${isPromptError ? "error" : ""}`}>{promptMessage}</p>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -530,7 +537,7 @@ export function PromptVersionsSection({
 }: PromptVersionsSectionProps) {
   return (
     <section className="versions-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Versions</span>
           <h2>{selectedPrompt ? selectedPrompt.name : "Select a prompt"}</h2>
@@ -561,23 +568,23 @@ export function PromptVersionsSection({
             <article className="version-card" key={promptVersion.id}>
               <div className="version-card-header">
                 <div>
-                  <span className={`status-badge ${promptVersion.status.toLowerCase()}`}>
+                  <Badge variant={promptVersion.status.toLowerCase() === "live" ? "live" : "draft"}>
                     {promptVersion.status}
-                  </span>
+                  </Badge>
                   <strong>v{promptVersion.version}</strong>
                 </div>
-                <button
-                  className="secondary-button"
+                <Button
                   disabled={promotingVersion === promptVersion.version}
                   onClick={() => onPromoteVersion(promptVersion)}
                   type="button"
+                  variant="secondary"
                 >
                   {promotingVersion === promptVersion.version
                     ? "Working..."
                     : promptVersion.status === "LIVE"
                       ? "Rollback here"
                       : "Make live"}
-                </button>
+                </Button>
               </div>
 
               <pre>{promptVersion.template}</pre>
@@ -594,9 +601,9 @@ export function PromptVersionsSection({
             </article>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Create</span>
           <h2>New version</h2>
@@ -606,7 +613,7 @@ export function PromptVersionsSection({
         <form className="form-stack" onSubmit={onCreateVersion}>
           <div className="field">
             <label htmlFor="version-template">Template</label>
-            <textarea
+            <Textarea
               disabled={!selectedPrompt}
               id="version-template"
               onChange={(event) => onVersionTemplateChange(event.target.value)}
@@ -619,7 +626,7 @@ export function PromptVersionsSection({
 
           <div className="field">
             <label htmlFor="version-model">Model optional</label>
-            <input
+            <Input
               disabled={!selectedPrompt}
               id="version-model"
               onChange={(event) => onVersionModelChange(event.target.value)}
@@ -630,7 +637,7 @@ export function PromptVersionsSection({
 
           <div className="field">
             <label htmlFor="version-model-params">Model params JSON optional</label>
-            <textarea
+            <Textarea
               disabled={!selectedPrompt}
               id="version-model-params"
               onChange={(event) => onVersionModelParamsChange(event.target.value)}
@@ -642,16 +649,16 @@ export function PromptVersionsSection({
           <div className="field">
             <div className="field-label-row">
               <label htmlFor="version-variable-schema">Variable schema JSON optional</label>
-              <button
-                className="inline-button"
+              <Button
                 disabled={!selectedPrompt}
                 onClick={onVersionVariableSchemaGenerate}
                 type="button"
+                variant="ghost"
               >
                 Generate from template
-              </button>
+              </Button>
             </div>
-            <textarea
+            <Textarea
               disabled={!selectedPrompt}
               id="version-variable-schema"
               onChange={(event) => onVersionVariableSchemaChange(event.target.value)}
@@ -660,9 +667,9 @@ export function PromptVersionsSection({
             />
           </div>
 
-          <button className="primary-button" disabled={!selectedPrompt || isCreatingVersion} type="submit">
+          <Button disabled={!selectedPrompt || isCreatingVersion} type="submit">
             {isCreatingVersion ? "Creating..." : "Create version"}
-          </button>
+          </Button>
         </form>
 
         <div className="active-record">
@@ -671,7 +678,7 @@ export function PromptVersionsSection({
         </div>
 
         <p className={`status-message ${isVersionError ? "error" : ""}`}>{versionMessage}</p>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -703,7 +710,7 @@ export function RuntimeRenderSection({
 }: RuntimeRenderSectionProps) {
   return (
     <section className="runtime-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Runtime</span>
           <h2>Render live prompt</h2>
@@ -716,7 +723,7 @@ export function RuntimeRenderSection({
         <form className="form-stack" onSubmit={onRenderLivePrompt}>
           <div className="field">
             <label htmlFor="runtime-variables">Variables JSON</label>
-            <textarea
+            <Textarea
               disabled={!selectedPrompt || !liveVersion}
               id="runtime-variables"
               onChange={(event) => onRuntimeVariablesChange(event.target.value)}
@@ -725,13 +732,12 @@ export function RuntimeRenderSection({
             />
           </div>
 
-          <button
-            className="primary-button"
+          <Button
             disabled={!selectedPrompt || !liveVersion || isRenderingPrompt}
             type="submit"
           >
             {isRenderingPrompt ? "Rendering..." : "Render live prompt"}
-          </button>
+          </Button>
         </form>
 
         <div className="active-record">
@@ -744,9 +750,9 @@ export function RuntimeRenderSection({
         </div>
 
         <p className={`status-message ${isRuntimeError ? "error" : ""}`}>{runtimeMessage}</p>
-      </div>
+      </Card>
 
-      <div className="dashboard-card render-output-card">
+      <Card className="render-output-card">
         <div className="section-heading">
           <span className="eyebrow">Output</span>
           <h2>Rendered prompt</h2>
@@ -773,7 +779,7 @@ export function RuntimeRenderSection({
             title="No render yet"
           />
         )}
-      </div>
+      </Card>
     </section>
   );
 }
@@ -803,7 +809,7 @@ export function ExecutionHistorySection({
 }: ExecutionHistorySectionProps) {
   return (
     <section className="execution-grid">
-      <div className="dashboard-card">
+      <Card>
         <div className="section-heading">
           <span className="eyebrow">Observability</span>
           <h2>Execution history</h2>
@@ -834,11 +840,12 @@ export function ExecutionHistorySection({
 
         <div className="execution-list">
           {executions.map((execution) => (
-            <button
+            <Button
               className={`execution-card ${execution.id === selectedExecutionId ? "active" : ""}`}
               key={execution.id}
               onClick={() => onSelectExecution(execution.id)}
               type="button"
+              variant="ghost"
             >
               <div>
                 <span>{execution.error ? "error" : "render"}</span>
@@ -855,14 +862,14 @@ export function ExecutionHistorySection({
                 </small>
               </div>
               <em>{execution.id === selectedExecutionId ? "selected" : "view"}</em>
-            </button>
+            </Button>
           ))}
         </div>
 
         <p className={`status-message ${isExecutionError ? "error" : ""}`}>{executionMessage}</p>
-      </div>
+      </Card>
 
-      <div className="dashboard-card execution-detail-card">
+      <Card className="execution-detail-card">
         <div className="section-heading">
           <span className="eyebrow">Detail</span>
           <h2>Execution detail</h2>
@@ -916,7 +923,7 @@ export function ExecutionHistorySection({
             title="No execution selected"
           />
         )}
-      </div>
+      </Card>
     </section>
   );
 }
