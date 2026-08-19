@@ -196,6 +196,44 @@ textarea:disabled {
   font-size: 14px;
 }
 
+.field-label-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.field-label-row label {
+  margin: 0;
+}
+
+.inline-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--forest);
+  background: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+}
+
+.inline-button:hover {
+  background: var(--mint);
+}
+
+.schema-details pre {
+  overflow: auto;
+  max-height: 280px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: #10231c;
+  background: rgba(255, 250, 240, 0.74);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 .field input,
 .field textarea {
   width: 100%;

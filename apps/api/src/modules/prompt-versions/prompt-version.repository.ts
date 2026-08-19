@@ -84,6 +84,7 @@ export async function createPromptVersion(
         promptId,
         version: (latestVersion?.version ?? 0) + 1,
         template: input.template,
+        variableSchema: input.variableSchema as Prisma.InputJsonValue | undefined,
         model: input.model,
         modelParams: input.modelParams,
         idempotencyKey: idempotencyKey ?? null,
@@ -135,9 +136,6 @@ export async function promotePromptVersion(
       where: {
         promptId: input.promptId,
         status: PromptVersionStatus.LIVE,
-      },
-      select: {
-        version: true,
       },
     });
 

@@ -490,6 +490,8 @@ type PromptVersionsSectionProps = {
   versionTemplate: string;
   versionModel: string;
   versionModelParams: string;
+  versionVariableSchema: string;
+  isVersionVariableSchemaDirty: boolean;
   versionMessage: string;
   isVersionError: boolean;
   isLoadingVersions: boolean;
@@ -498,6 +500,8 @@ type PromptVersionsSectionProps = {
   onVersionTemplateChange: (value: string) => void;
   onVersionModelChange: (value: string) => void;
   onVersionModelParamsChange: (value: string) => void;
+  onVersionVariableSchemaChange: (value: string) => void;
+  onVersionVariableSchemaGenerate: () => void;
   onCreateVersion: FormEventHandler<HTMLFormElement>;
   onPromoteVersion: (promptVersion: PromptVersion) => void;
 };
@@ -509,6 +513,8 @@ export function PromptVersionsSection({
   versionTemplate,
   versionModel,
   versionModelParams,
+  versionVariableSchema,
+  isVersionVariableSchemaDirty,
   versionMessage,
   isVersionError,
   isLoadingVersions,
@@ -517,6 +523,8 @@ export function PromptVersionsSection({
   onVersionTemplateChange,
   onVersionModelChange,
   onVersionModelParamsChange,
+  onVersionVariableSchemaChange,
+  onVersionVariableSchemaGenerate,
   onCreateVersion,
   onPromoteVersion,
 }: PromptVersionsSectionProps) {
@@ -573,6 +581,12 @@ export function PromptVersionsSection({
               </div>
 
               <pre>{promptVersion.template}</pre>
+              {promptVersion.variableSchema && typeof promptVersion.variableSchema === "object" ? (
+                <details className="schema-details">
+                  <summary>Schema details</summary>
+                  <pre>{JSON.stringify(promptVersion.variableSchema, null, 2)}</pre>
+                </details>
+              ) : null}
               <small>
                 {promptVersion.model ? `model: ${promptVersion.model}` : "model not set"} · created{" "}
                 {new Date(promptVersion.createdAt).toLocaleString()}
@@ -622,6 +636,27 @@ export function PromptVersionsSection({
               onChange={(event) => onVersionModelParamsChange(event.target.value)}
               rows={4}
               value={versionModelParams}
+            />
+          </div>
+
+          <div className="field">
+            <div className="field-label-row">
+              <label htmlFor="version-variable-schema">Variable schema JSON optional</label>
+              <button
+                className="inline-button"
+                disabled={!selectedPrompt}
+                onClick={onVersionVariableSchemaGenerate}
+                type="button"
+              >
+                Generate from template
+              </button>
+            </div>
+            <textarea
+              disabled={!selectedPrompt}
+              id="version-variable-schema"
+              onChange={(event) => onVersionVariableSchemaChange(event.target.value)}
+              rows={8}
+              value={versionVariableSchema}
             />
           </div>
 

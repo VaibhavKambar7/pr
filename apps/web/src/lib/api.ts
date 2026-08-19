@@ -1,7 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 type ApiErrorResponse = {
-  error?: string;
+  error?: string | { code: string; message: string; issues?: Array<{ path: string; message: string }> };
 };
 
 export type AuthUser = {
@@ -79,6 +79,7 @@ export type PromptVersion = {
   version: number;
   status: PromptVersionStatus;
   template: string;
+  variableSchema: Record<string, unknown> | null;
   model: string | null;
   modelParams: unknown;
   createdAt: string;
@@ -88,6 +89,7 @@ export type PromptVersion = {
 
 type CreatePromptVersionInput = {
   template: string;
+  variableSchema?: Record<string, unknown>;
   model?: string;
   modelParams?: Record<string, unknown>;
 };
@@ -103,6 +105,7 @@ export type RuntimeRenderResult = {
     id: string;
     version: number;
     status: PromptVersionStatus;
+    variableSchema: Record<string, unknown> | null;
     model: string | null;
     modelParams: unknown;
     createdAt: string;
@@ -167,6 +170,33 @@ export type ExecutionDetail = ExecutionListItem & {
   };
 };
 
+export function formatApiError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "request failed";
+  }
+
+  const message = error.message;
+
+  try {
+    const parsed = JSON.parse(message) as ApiErrorResponse;
+
+    if (typeof parsed.error === "object" && parsed.error !== null) {
+      const { code, issues } = parsed.error;
+
+      if (issues !== undefined && issues.length > 0) {
+        const issueMessages = issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ");
+        return `${code}: ${issueMessages}`;
+      }
+
+      return code;
+    }
+  } catch {
+    // not JSON, use raw message
+  }
+
+  return message;
+}
+
 async function request<T>(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
 
@@ -181,7 +211,8 @@ async function request<T>(path: string, init?: RequestInit) {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorResponse;
-    throw new Error(body.error ?? "request failed");
+    const errorMessage = typeof body.error === "object" ? JSON.stringify(body.error) : (body.error ?? "request failed");
+    throw new Error(errorMessage);
   }
 
   if (response.status === 204) {

@@ -1,4 +1,5 @@
 import type { Prisma } from "@pr/database";
+import Ajv from "ajv";
 import { recordRenderExecution } from "../executions/execution.service.js";
 import { findPromptById } from "../prompts/prompt.repository.js";
 import { PromptNotFoundError, getPromptForProject } from "../prompts/prompt.service.js";
@@ -8,6 +9,20 @@ import type { RenderLivePromptInput } from "./runtime.schema.js";
 export class LivePromptVersionNotFoundError extends Error {
   constructor() {
     super("no live prompt version found");
+  }
+}
+
+export class VariableValidationError extends Error {
+  public readonly issues: Array<{ path: string; message: string }>;
+
+  constructor(
+    issues: Array<{ path: string; keyword: string; message: string }>,
+  ) {
+    super("prompt variables failed validation");
+    this.issues = issues.map((issue) => ({
+      path: issue.path,
+      message: formatAjvMessage(issue.keyword, issue.message),
+    }));
   }
 }
 
@@ -33,6 +48,58 @@ export type RuntimeAuthContext =
       apiKeyId: string;
       projectId: string;
     };
+
+function formatAjvPath(instancePath: string): string {
+  return instancePath || "/";
+}
+
+function formatAjvMessage(keyword: string, defaultMessage: string): string {
+  switch (keyword) {
+    case "type":
+      return defaultMessage;
+    case "enum":
+      return defaultMessage;
+    case "required":
+      return defaultMessage;
+    case "minLength":
+      return defaultMessage;
+    case "maxLength":
+      return defaultMessage;
+    case "pattern":
+      return defaultMessage;
+    case "minimum":
+      return defaultMessage;
+    case "maximum":
+      return defaultMessage;
+    default:
+      return defaultMessage;
+  }
+}
+
+const compiledValidators = new Map<string, ReturnType<Ajv["compile"]>>();
+const ajvInstance = new Ajv({ allErrors: true, strict: false });
+
+function getCompiledValidator(schema: Record<string, unknown>) {
+  const key = JSON.stringify(schema);
+  const cached = compiledValidators.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
+  const validate = ajvInstance.compile(schema);
+  compiledValidators.set(key, validate);
+
+  if (compiledValidators.size > 1000) {
+    const firstKey = compiledValidators.keys().next().value;
+
+    if (firstKey !== undefined) {
+      compiledValidators.delete(firstKey);
+    }
+  }
+
+  return validate;
+}
 
 function renderTemplate(template: string, variables: RenderLivePromptInput["variables"]) {
   return template.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_match, variableName: string) => {
@@ -88,6 +155,22 @@ export async function renderLivePrompt(
 ) {
   const startedAt = Date.now();
   const { prompt, promptVersion } = await getLivePromptVersion(context, projectId, promptId);
+
+  if (promptVersion.variableSchema && typeof promptVersion.variableSchema === "object") {
+    const validate = getCompiledValidator(promptVersion.variableSchema as Record<string, unknown>);
+    const valid = validate(input.variables);
+
+    if (!valid) {
+      const issues = (validate.errors ?? []).map((err) => ({
+        path: formatAjvPath(err.instancePath),
+        keyword: err.keyword ?? "validation",
+        message: err.message ?? "validation failed",
+      }));
+
+      throw new VariableValidationError(issues);
+    }
+  }
+
   const renderedPrompt = renderTemplate(promptVersion.template, input.variables);
   const execution = await recordRenderExecution({
     projectId,
@@ -107,6 +190,7 @@ export async function renderLivePrompt(
       id: promptVersion.id,
       version: promptVersion.version,
       status: promptVersion.status,
+      variableSchema: promptVersion.variableSchema,
       model: promptVersion.model,
       modelParams: promptVersion.modelParams,
       createdAt: promptVersion.createdAt,

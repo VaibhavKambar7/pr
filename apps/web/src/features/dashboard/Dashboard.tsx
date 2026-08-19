@@ -90,6 +90,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [versionTemplate, setVersionTemplate] = useState("");
   const [versionModel, setVersionModel] = useState("");
   const [versionModelParams, setVersionModelParams] = useState("{\n  \"temperature\": 0.2\n}");
+  const [versionVariableSchema, setVersionVariableSchema] = useState("");
+  const [isVersionVariableSchemaDirty, setIsVersionVariableSchemaDirty] = useState(false);
   const [versionMessage, setVersionMessage] = useState("Select a prompt to load versions.");
   const [runtimeVariables, setRuntimeVariables] = useState("{\n  \"customer_name\": \"Asha\",\n  \"issue\": \"a delayed order\"\n}");
   const [runtimeMessage, setRuntimeMessage] = useState("Promote a live version, then render it here.");
@@ -631,6 +633,18 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    let variableSchema: Record<string, unknown> | undefined;
+
+    if (versionVariableSchema.trim()) {
+      try {
+        variableSchema = parseJsonObject(versionVariableSchema, "variable schema");
+      } catch (error) {
+        setIsVersionError(true);
+        setVersionMessage(error instanceof Error ? error.message : "Invalid variable schema");
+        return;
+      }
+    }
+
     const idempotencyKey = await versionIdempotencyKey(selectedPromptId, {
       template,
       model: model || undefined,
@@ -644,6 +658,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     try {
       const result = await createPromptVersion(accessToken, selectedProjectId, selectedPromptId, {
         template,
+        variableSchema,
         model: model || undefined,
         modelParams,
       }, idempotencyKey);
@@ -838,12 +853,33 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
           isCreatingVersion={isCreatingVersion}
           isLoadingVersions={isLoadingVersions}
           isVersionError={isVersionError}
+          isVersionVariableSchemaDirty={isVersionVariableSchemaDirty}
           liveVersion={liveVersion}
           onCreateVersion={handleCreateVersion}
           onPromoteVersion={(promptVersion) => void handlePromoteVersion(promptVersion)}
           onVersionModelChange={setVersionModel}
           onVersionModelParamsChange={setVersionModelParams}
           onVersionTemplateChange={setVersionTemplate}
+          onVersionVariableSchemaChange={(value) => {
+            setVersionVariableSchema(value);
+            setIsVersionVariableSchemaDirty(true);
+          }}
+          onVersionVariableSchemaGenerate={() => {
+            setVersionVariableSchema(
+              JSON.stringify(
+                { type: "object", properties: Object.fromEntries(
+                  Array.from(versionTemplate.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g))
+                    .map((m) => [m[1], { type: "string", minLength: 1 }]),
+                ), required: Array.from(new Set(
+                  Array.from(versionTemplate.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g))
+                    .map((m) => m[1] as string),
+                )), additionalProperties: false },
+                null,
+                2,
+              ),
+            );
+            setIsVersionVariableSchemaDirty(false);
+          }}
           promotingVersion={promotingVersion}
           promptVersions={promptVersions}
           selectedPrompt={selectedPrompt}
@@ -851,6 +887,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
           versionModel={versionModel}
           versionModelParams={versionModelParams}
           versionTemplate={versionTemplate}
+          versionVariableSchema={versionVariableSchema}
         />
 
         <RuntimeRenderSection

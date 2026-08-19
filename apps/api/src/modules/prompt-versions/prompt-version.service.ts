@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { extractTemplateVariables, InvalidVariableSchemaError, SchemaTemplateMismatchError, validatePromptVariableSchema } from "@pr/shared";
 import { getPromptForProject } from "../prompts/prompt.service.js";
 import {
   createPromptVersion,
@@ -8,7 +9,12 @@ import {
 } from "./prompt-version.repository.js";
 import type { CreatePromptVersionInput, SetLivePromptVersionInput } from "./prompt-version.schema.js";
 
-export { IdempotencyKeyConflictError, PromptVersionConflictError } from "./prompt-version.repository.js";
+export {
+  IdempotencyKeyConflictError,
+  PromptVersionConflictError,
+} from "./prompt-version.repository.js";
+
+export { InvalidVariableSchemaError, SchemaTemplateMismatchError } from "@pr/shared";
 
 export class PromptVersionNotFoundError extends Error {
   constructor() {
@@ -40,6 +46,27 @@ export async function createVersionForPrompt(
   idempotencyKey?: string,
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
+
+  if (input.variableSchema) {
+    const templateVariables = extractTemplateVariables(input.template);
+    const { issues } = validatePromptVariableSchema(input.variableSchema, templateVariables);
+
+    if (issues.length > 0) {
+      const hasSchemaStructureIssues = issues.some(
+        (issue) =>
+          issue.path === "variableSchema" ||
+          issue.path.startsWith("variableSchema.type") ||
+          issue.path.startsWith("variableSchema.$ref") ||
+          issue.path.startsWith("variableSchema.properties.") === false,
+      );
+
+      if (hasSchemaStructureIssues) {
+        throw new InvalidVariableSchemaError(issues);
+      }
+
+      throw new SchemaTemplateMismatchError(issues);
+    }
+  }
 
   return createPromptVersion(promptId, input, idempotencyKey, hashCreateVersionRequest(input));
 }

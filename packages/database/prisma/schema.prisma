@@ -65,6 +65,7 @@ model PromptVersion {
   version         Int
   status          PromptVersionStatus @default(DRAFT)
   template        String
+  variableSchema  Json?
   model           String?
   modelParams     Json?
   idempotencyKey  String?
