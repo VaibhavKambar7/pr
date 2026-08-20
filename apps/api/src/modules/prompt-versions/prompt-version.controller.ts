@@ -5,11 +5,14 @@ import { requireUser } from "../../shared/http.js";
 import {
   createVersionForPrompt,
   getVersionForPrompt,
+  listTagsForPrompt,
   listVersionsForPrompt,
   promoteVersionForPrompt,
+  removeTagForPrompt,
   rollbackVersionForPrompt,
+  setTagForPromptVersion,
 } from "./prompt-version.service.js";
-import { createPromptVersionSchema, setLivePromptVersionSchema } from "./prompt-version.schema.js";
+import { createPromptVersionSchema, setLivePromptVersionSchema, setVersionTagSchema, type SetVersionTagInput } from "./prompt-version.schema.js";
 
 type PromptParams = {
   projectId: string;
@@ -200,6 +203,93 @@ export async function rollbackPromptVersionController(
     );
 
     return reply.code(200).send({ promptVersion });
+  } catch (error) {
+    return sendPromptVersionError(reply, error);
+  }
+}
+
+type TagParams = PromptVersionParams;
+
+export async function setVersionTagController(
+  request: FastifyRequest<{ Params: TagParams; Body: SetVersionTagInput }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  const parsedBody = setVersionTagSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+      issues: parsedBody.error.flatten().fieldErrors,
+    });
+  }
+
+  try {
+    const tag = await setTagForPromptVersion(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+      request.params.version,
+      parsedBody.data,
+    );
+
+    return reply.code(200).send({ tag });
+  } catch (error) {
+    return sendPromptVersionError(reply, error);
+  }
+}
+
+type RemoveTagParams = PromptParams & {
+  tag: string;
+};
+
+export async function removeVersionTagController(
+  request: FastifyRequest<{ Params: RemoveTagParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    await removeTagForPrompt(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+      request.params.tag,
+    );
+
+    return reply.code(204).send();
+  } catch (error) {
+    return sendPromptVersionError(reply, error);
+  }
+}
+
+export async function listPromptTagsController(
+  request: FastifyRequest<{ Params: PromptParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const tags = await listTagsForPrompt(
+      user.id,
+      request.params.projectId,
+      request.params.promptId,
+    );
+
+    return reply.code(200).send({ tags });
   } catch (error) {
     return sendPromptVersionError(reply, error);
   }

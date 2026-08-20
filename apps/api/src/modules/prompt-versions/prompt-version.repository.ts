@@ -177,3 +177,94 @@ export async function promotePromptVersion(
     return toPublicPromptVersion(promoted);
   });
 }
+
+export async function findTagByPromptAndName(promptId: string, tag: string) {
+  return prisma.promptVersionTag.findUnique({
+    where: {
+      promptId_tag: {
+        promptId,
+        tag,
+      },
+    },
+    include: {
+      version: true,
+    },
+  });
+}
+
+export async function upsertTag(promptId: string, versionId: string, tag: string) {
+  const existing = await prisma.promptVersionTag.findUnique({
+    where: {
+      promptId_tag: {
+        promptId,
+        tag,
+      },
+    },
+  });
+
+  if (existing) {
+    if (existing.versionId === versionId) {
+      return existing;
+    }
+
+    return prisma.promptVersionTag.update({
+      where: {
+        id: existing.id,
+      },
+      data: {
+        versionId,
+      },
+    });
+  }
+
+  return prisma.promptVersionTag.create({
+    data: {
+      promptId,
+      versionId,
+      tag,
+    },
+  });
+}
+
+export async function deleteTag(promptId: string, tag: string) {
+  const existing = await prisma.promptVersionTag.findUnique({
+    where: {
+      promptId_tag: {
+        promptId,
+        tag,
+      },
+    },
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  await prisma.promptVersionTag.delete({
+    where: {
+      id: existing.id,
+    },
+  });
+
+  return existing;
+}
+
+export async function listTagsByPrompt(promptId: string) {
+  return prisma.promptVersionTag.findMany({
+    where: {
+      promptId,
+    },
+    include: {
+      version: {
+        select: {
+          id: true,
+          version: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: {
+      tag: "asc",
+    },
+  });
+}

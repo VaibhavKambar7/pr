@@ -73,6 +73,20 @@ type CreatePromptInput = {
 
 export type PromptVersionStatus = "DRAFT" | "LIVE" | "ARCHIVED";
 
+export type PromptVersionTag = {
+  id: string;
+  promptId: string;
+  versionId: string;
+  tag: string;
+  createdAt: string;
+  updatedAt: string;
+  version: {
+    id: string;
+    version: number;
+    status: PromptVersionStatus;
+  };
+};
+
 export type PromptVersion = {
   id: string;
   promptId: string;
@@ -404,4 +418,48 @@ export function getExecution(accessToken: string, projectId: string, executionId
       Authorization: `Bearer ${accessToken}`,
     },
   });
+}
+
+export function setVersionTag(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  version: number,
+  tag: string,
+) {
+  return request<{ tag: PromptVersionTag }>(
+    `/projects/${projectId}/prompts/${promptId}/versions/${version}/tag`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ tag }),
+    },
+  );
+}
+
+export function removeVersionTag(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  tag: string,
+) {
+  return request<void>(`/projects/${projectId}/prompts/${promptId}/tags/${tag}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function listPromptTags(accessToken: string, projectId: string, promptId: string) {
+  return request<{ tags: PromptVersionTag[] }>(
+    `/projects/${projectId}/prompts/${promptId}/tags`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
 }

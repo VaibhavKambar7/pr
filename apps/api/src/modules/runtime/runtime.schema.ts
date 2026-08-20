@@ -9,3 +9,11 @@ export const renderLivePromptSchema = z
   .strict();
 
 export type RenderLivePromptInput = z.infer<typeof renderLivePromptSchema>;
+
+export const runtimeQuerySchema = z
+  .object({
+    tag: z.string().optional(),
+  })
+  .strict();
+
+export type RuntimeQueryInput = z.infer<typeof runtimeQuerySchema>;

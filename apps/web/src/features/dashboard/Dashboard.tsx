@@ -10,18 +10,22 @@ import {
   listApiKeys,
   listExecutions,
   listPrompts,
+  listPromptTags,
   listPromptVersions,
   listProjects,
   promotePromptVersion,
+  removeVersionTag,
   renderLivePrompt,
   revokeApiKey,
   rollbackPromptVersion,
+  setVersionTag,
   type ApiKey,
   type AuthUser,
   type ExecutionDetail,
   type ExecutionListItem,
   type Prompt,
   type PromptVersion,
+  type PromptVersionTag,
   type Project,
   type RuntimeRenderResult,
 } from "../../lib/api";
@@ -129,6 +133,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [versionVariableSchema, setVersionVariableSchema] = useState("");
   const [isVersionVariableSchemaDirty, setIsVersionVariableSchemaDirty] = useState(false);
   const [versionMessage, setVersionMessage] = useState("Select a prompt to load versions.");
+  const [promptTags, setPromptTags] = useState<PromptVersionTag[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string>("");
   const [runtimeVariables, setRuntimeVariables] = useState("{\n  \"customer_name\": \"Asha\",\n  \"issue\": \"a delayed order\"\n}");
   const [runtimeMessage, setRuntimeMessage] = useState("Promote a live version, then render it here.");
   const [renderResult, setRenderResult] = useState<RuntimeRenderResult | null>(null);
@@ -226,6 +232,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       liveVersion={liveVersion}
       onCreateVersion={handleCreateVersion}
       onPromoteVersion={(promptVersion) => void handlePromoteVersion(promptVersion)}
+      onRemoveTag={handleRemoveVersionTag}
+      onSetTag={(promptVersion, tag) => void handleSetVersionTag(promptVersion, tag)}
       onVersionModelChange={setVersionModel}
       onVersionModelParamsChange={setVersionModelParams}
       onVersionTemplateChange={setVersionTemplate}
@@ -253,8 +261,11 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
         setIsVersionVariableSchemaDirty(false);
       }}
       promotingVersion={promotingVersion}
+      promptTags={promptTags}
       promptVersions={promptVersions}
       selectedPrompt={selectedPrompt}
+      selectedTag={selectedTag}
+      onSelectedTagChange={setSelectedTag}
       versionMessage={versionMessage}
       versionModel={versionModel}
       versionModelParams={versionModelParams}
@@ -341,7 +352,45 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     return () => {
       isMounted = false;
     };
-  }, [accessToken]);
+  }, [accessToken, selectedProjectId, selectedPromptId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId || !selectedPromptId) {
+      setPromptTags([]);
+      setSelectedTag("");
+      return;
+    }
+
+    async function loadTags() {
+      if (!selectedProjectId || !selectedPromptId) {
+        return;
+      }
+
+      try {
+        const result = await listPromptTags(accessToken, selectedProjectId, selectedPromptId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPromptTags(result.tags);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+
+        setPromptTags([]);
+      }
+    }
+
+    void loadTags();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId, selectedPromptId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -894,6 +943,61 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       setVersionMessage(error instanceof Error ? error.message : "Failed to promote version");
     } finally {
       setPromotingVersion(null);
+    }
+  }
+
+  async function handleSetVersionTag(promptVersion: PromptVersion, tag: string) {
+    if (!selectedProjectId || !selectedPromptId) {
+      return;
+    }
+
+    setIsVersionError(false);
+    setVersionMessage(`Setting tag "${tag}" on version ${promptVersion.version}...`);
+
+    try {
+      const result = await setVersionTag(
+        accessToken,
+        selectedProjectId,
+        selectedPromptId,
+        promptVersion.version,
+        tag,
+      );
+
+      setPromptTags((currentTags) => {
+        const existingIndex = currentTags.findIndex((t) => t.tag === tag);
+
+        if (existingIndex >= 0) {
+          const updated = [...currentTags];
+          updated[existingIndex] = result.tag;
+          return updated;
+        }
+
+        return [...currentTags, result.tag];
+      });
+
+      setVersionMessage(`Tag "${tag}" set on version ${promptVersion.version}.`);
+    } catch (error) {
+      setIsVersionError(true);
+      setVersionMessage(error instanceof Error ? error.message : "Failed to set tag");
+    }
+  }
+
+  async function handleRemoveVersionTag(tag: string) {
+    if (!selectedProjectId || !selectedPromptId) {
+      return;
+    }
+
+    setIsVersionError(false);
+    setVersionMessage(`Removing tag "${tag}"...`);
+
+    try {
+      await removeVersionTag(accessToken, selectedProjectId, selectedPromptId, tag);
+
+      setPromptTags((currentTags) => currentTags.filter((t) => t.tag !== tag));
+      setVersionMessage(`Tag "${tag}" removed.`);
+    } catch (error) {
+      setIsVersionError(true);
+      setVersionMessage(error instanceof Error ? error.message : "Failed to remove tag");
     }
   }
 

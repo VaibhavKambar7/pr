@@ -22,3 +22,11 @@ export const setLivePromptVersionSchema = z
   .strict();
 
 export type SetLivePromptVersionInput = z.infer<typeof setLivePromptVersionSchema>;
+
+export const setVersionTagSchema = z
+  .object({
+    tag: z.enum(["production", "staging", "canary"]),
+  })
+  .strict();
+
+export type SetVersionTagInput = z.infer<typeof setVersionTagSchema>;

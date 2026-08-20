@@ -9,11 +9,15 @@ import {
 import { getPromptForProject } from "../prompts/prompt.service.js";
 import {
   createPromptVersion,
+  deleteTag,
   findPromptVersion,
+  findTagByPromptAndName,
   listPromptVersions,
+  listTagsByPrompt,
   promotePromptVersion,
+  upsertTag,
 } from "./prompt-version.repository.js";
-import type { CreatePromptVersionInput, SetLivePromptVersionInput } from "./prompt-version.schema.js";
+import type { CreatePromptVersionInput, SetLivePromptVersionInput, SetVersionTagInput } from "./prompt-version.schema.js";
 
 export {
   IdempotencyKeyConflictError,
@@ -25,6 +29,12 @@ export { InvalidVariableSchemaError, SchemaTemplateMismatchError } from "@pr/sha
 export class PromptVersionNotFoundError extends Error {
   constructor() {
     super("prompt version not found");
+  }
+}
+
+export class TagNotFoundError extends Error {
+  constructor(tag: string) {
+    super(`tag "${tag}" not found`);
   }
 }
 
@@ -155,4 +165,53 @@ export async function rollbackVersionForPrompt(
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
   return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion);
+}
+
+export async function setTagForPromptVersion(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+  versionParam: string,
+  input: { tag: string },
+) {
+  await getPromptForProject(ownerId, projectId, promptId);
+
+  const version = parseVersionNumber(versionParam);
+  const promptVersion = await findPromptVersion({
+    promptId,
+    version,
+  });
+
+  if (!promptVersion) {
+    throw new PromptVersionNotFoundError();
+  }
+
+  return upsertTag(promptId, promptVersion.id as string, input.tag as string);
+}
+
+export async function removeTagForPrompt(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+  tag: string,
+) {
+  await getPromptForProject(ownerId, projectId, promptId);
+
+  const existing = await findTagByPromptAndName(promptId, tag);
+
+  if (!existing) {
+    throw new TagNotFoundError(tag);
+  }
+
+  return deleteTag(promptId, tag);
+}
+
+export async function listTagsForPrompt(
+  ownerId: string,
+  projectId: string,
+  promptId: string,
+) {
+  await getPromptForProject(ownerId, projectId, promptId);
+
+  return listTagsByPrompt(promptId);
 }

@@ -8,6 +8,7 @@ import {
   PromptVersionConflictError,
   PromptVersionNotFoundError,
   SchemaTemplateMismatchError,
+  TagNotFoundError,
 } from "../modules/prompt-versions/prompt-version.service.js";
 import { VariableValidationError } from "../modules/runtime/runtime.service.js";
 import { PromptConflictError, PromptNotFoundError } from "../modules/prompts/prompt.service.js";
@@ -15,6 +16,7 @@ import {
   LivePromptVersionNotFoundError,
   MissingTemplateVariableError,
   RuntimeProjectAccessError,
+  TagVersionNotFoundError,
 } from "../modules/runtime/runtime.service.js";
 
 function sendStructuredError(
@@ -88,6 +90,10 @@ export function sendPromptVersionError(reply: FastifyReply, error: unknown) {
     return sendStructuredError(reply, 400, "SCHEMA_TEMPLATE_MISMATCH", error.message, error.issues);
   }
 
+  if (error instanceof TagNotFoundError) {
+    return sendStructuredError(reply, 404, "TAG_NOT_FOUND", error.message);
+  }
+
   return sendStructuredError(reply, 500, "PROMPT_VERSION_OPERATION_FAILED", error instanceof Error ? error.message : "prompt version operation failed");
 }
 
@@ -114,6 +120,10 @@ export function sendRuntimeError(reply: FastifyReply, error: unknown) {
 
   if (error instanceof RuntimeProjectAccessError) {
     return sendStructuredError(reply, 403, "RUNTIME_PROJECT_ACCESS_DENIED", error.message);
+  }
+
+  if (error instanceof TagVersionNotFoundError) {
+    return sendStructuredError(reply, 404, "TAG_VERSION_NOT_FOUND", error.message);
   }
 
   return sendStructuredError(reply, 500, "RUNTIME_OPERATION_FAILED", error instanceof Error ? error.message : "runtime operation failed");

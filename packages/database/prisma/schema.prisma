@@ -43,16 +43,17 @@ model Project {
 }
 
 model Prompt {
-  id          String          @id @default(cuid())
+  id          String                @id @default(cuid())
   projectId   String
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name        String
   slug        String
   description String?
   versions    PromptVersion[]
+  tags        PromptVersionTag[]
   executions  Execution[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
   @@unique([projectId, slug])
   @@index([projectId])
@@ -71,6 +72,7 @@ model PromptVersion {
   idempotencyKey  String?
   requestHash     String?
   executions      Execution[]
+  tag             PromptVersionTag?
   createdAt       DateTime            @default(now())
   promotedAt      DateTime?
   archivedAt      DateTime?
@@ -78,6 +80,22 @@ model PromptVersion {
   @@unique([promptId, version])
   @@unique([promptId, idempotencyKey])
   @@index([promptId, status])
+}
+
+model PromptVersionTag {
+  id         String         @id @default(cuid())
+  promptId   String
+  prompt     Prompt         @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  versionId  String
+  version    PromptVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  tag        String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([promptId, tag])
+  @@unique([versionId])
+  @@index([promptId])
+  @@index([versionId])
 }
 
 model ApiKey {

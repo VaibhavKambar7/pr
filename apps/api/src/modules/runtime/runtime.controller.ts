@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendRuntimeError } from "../../shared/errors.js";
 import { requireUser } from "../../shared/http.js";
 import { getLivePromptVersion, renderLivePrompt } from "./runtime.service.js";
-import { renderLivePromptSchema } from "./runtime.schema.js";
+import { renderLivePromptSchema, runtimeQuerySchema } from "./runtime.schema.js";
 
 type RuntimePromptParams = {
   projectId: string;
@@ -31,7 +31,7 @@ function getRuntimeContext(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function getLivePromptVersionController(
-  request: FastifyRequest<{ Params: RuntimePromptParams }>,
+  request: FastifyRequest<{ Params: RuntimePromptParams; Querystring: { tag?: string } }>,
   reply: FastifyReply,
 ) {
   const context = getRuntimeContext(request, reply);
@@ -40,8 +40,22 @@ export async function getLivePromptVersionController(
     return;
   }
 
+  const parsedQuery = runtimeQuerySchema.safeParse(request.query);
+
+  if (!parsedQuery.success) {
+    return reply.code(400).send({
+      error: "invalid query parameters",
+      issues: parsedQuery.error.flatten().fieldErrors,
+    });
+  }
+
   try {
-    const result = await getLivePromptVersion(context, request.params.projectId, request.params.promptId);
+    const result = await getLivePromptVersion(
+      context,
+      request.params.projectId,
+      request.params.promptId,
+      parsedQuery.data.tag,
+    );
 
     return reply.code(200).send(result);
   } catch (error) {
@@ -50,7 +64,7 @@ export async function getLivePromptVersionController(
 }
 
 export async function renderLivePromptController(
-  request: FastifyRequest<{ Params: RuntimePromptParams }>,
+  request: FastifyRequest<{ Params: RuntimePromptParams; Querystring: { tag?: string } }>,
   reply: FastifyReply,
 ) {
   const context = getRuntimeContext(request, reply);
@@ -68,12 +82,22 @@ export async function renderLivePromptController(
     });
   }
 
+  const parsedQuery = runtimeQuerySchema.safeParse(request.query);
+
+  if (!parsedQuery.success) {
+    return reply.code(400).send({
+      error: "invalid query parameters",
+      issues: parsedQuery.error.flatten().fieldErrors,
+    });
+  }
+
   try {
     const result = await renderLivePrompt(
       context,
       request.params.projectId,
       request.params.promptId,
       parsedBody.data,
+      parsedQuery.data.tag,
     );
 
     return reply.code(200).send(result);

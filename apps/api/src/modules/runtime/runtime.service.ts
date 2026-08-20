@@ -3,12 +3,18 @@ import Ajv from "ajv";
 import { recordRenderExecution } from "../executions/execution.service.js";
 import { findPromptById } from "../prompts/prompt.repository.js";
 import { PromptNotFoundError, getPromptForProject } from "../prompts/prompt.service.js";
-import { findLivePromptVersion } from "./runtime.repository.js";
+import { findPromptVersionByTag, findLivePromptVersion } from "./runtime.repository.js";
 import type { RenderLivePromptInput } from "./runtime.schema.js";
 
 export class LivePromptVersionNotFoundError extends Error {
   constructor() {
     super("no live prompt version found");
+  }
+}
+
+export class TagVersionNotFoundError extends Error {
+  constructor(tag: string) {
+    super(`no prompt version found for tag "${tag}"`);
   }
 }
 
@@ -133,8 +139,27 @@ async function getPromptForRuntimeContext(context: RuntimeAuthContext, projectId
   return getPromptForProject(context.userId, projectId, promptId);
 }
 
-export async function getLivePromptVersion(context: RuntimeAuthContext, projectId: string, promptId: string) {
+export async function getLivePromptVersion(
+  context: RuntimeAuthContext,
+  projectId: string,
+  promptId: string,
+  tag?: string,
+) {
   const prompt = await getPromptForRuntimeContext(context, projectId, promptId);
+
+  if (tag) {
+    const promptVersion = await findPromptVersionByTag(promptId, tag);
+
+    if (!promptVersion) {
+      throw new TagVersionNotFoundError(tag);
+    }
+
+    return {
+      prompt,
+      promptVersion,
+    };
+  }
+
   const promptVersion = await findLivePromptVersion(promptId);
 
   if (!promptVersion) {
@@ -152,9 +177,10 @@ export async function renderLivePrompt(
   projectId: string,
   promptId: string,
   input: RenderLivePromptInput,
+  tag?: string,
 ) {
   const startedAt = Date.now();
-  const { prompt, promptVersion } = await getLivePromptVersion(context, projectId, promptId);
+  const { prompt, promptVersion } = await getLivePromptVersion(context, projectId, promptId, tag);
 
   if (promptVersion.variableSchema && typeof promptVersion.variableSchema === "object") {
     const validate = getCompiledValidator(promptVersion.variableSchema as Record<string, unknown>);

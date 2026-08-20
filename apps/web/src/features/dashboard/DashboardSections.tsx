@@ -6,6 +6,7 @@ import type {
   ExecutionListItem,
   Prompt,
   PromptVersion,
+  PromptVersionTag,
   Project,
   RuntimeRenderResult,
 } from "../../lib/api";
@@ -494,6 +495,8 @@ type PromptVersionsSectionProps = {
   selectedPrompt: Prompt | null;
   liveVersion: PromptVersion | null;
   promptVersions: PromptVersion[];
+  promptTags: PromptVersionTag[];
+  selectedTag: string;
   versionTemplate: string;
   versionModel: string;
   versionModelParams: string;
@@ -511,12 +514,17 @@ type PromptVersionsSectionProps = {
   onVersionVariableSchemaGenerate: () => void;
   onCreateVersion: FormEventHandler<HTMLFormElement>;
   onPromoteVersion: (promptVersion: PromptVersion) => void;
+  onSetTag: (promptVersion: PromptVersion, tag: string) => void;
+  onRemoveTag: (tag: string) => void;
+  onSelectedTagChange: (tag: string) => void;
 };
 
 export function PromptVersionsSection({
   selectedPrompt,
   liveVersion,
   promptVersions,
+  promptTags,
+  selectedTag,
   versionTemplate,
   versionModel,
   versionModelParams,
@@ -534,7 +542,15 @@ export function PromptVersionsSection({
   onVersionVariableSchemaGenerate,
   onCreateVersion,
   onPromoteVersion,
+  onSetTag,
+  onRemoveTag,
+  onSelectedTagChange,
 }: PromptVersionsSectionProps) {
+  const AVAILABLE_TAGS = ["production", "staging", "canary"] as const;
+
+  function getVersionTag(version: PromptVersion): string | undefined {
+    return promptTags.find((t) => t.versionId === version.id)?.tag;
+  }
   return (
     <section className="versions-grid">
       <Card>
@@ -564,28 +580,66 @@ export function PromptVersionsSection({
         ) : null}
 
         <div className="version-list">
-          {promptVersions.map((promptVersion) => (
-            <article className="version-card" key={promptVersion.id}>
-              <div className="version-card-header">
-                <div>
-                  <Badge variant={promptVersion.status.toLowerCase() === "live" ? "live" : "draft"}>
-                    {promptVersion.status}
-                  </Badge>
-                  <strong>v{promptVersion.version}</strong>
+          {promptVersions.map((promptVersion) => {
+            const versionTag = getVersionTag(promptVersion);
+
+            return (
+              <article className="version-card" key={promptVersion.id}>
+                <div className="version-card-header">
+                  <div>
+                    <Badge variant={promptVersion.status.toLowerCase() === "live" ? "live" : "draft"}>
+                      {promptVersion.status}
+                    </Badge>
+                    {versionTag ? (
+                      <Badge variant={versionTag === "production" ? "live" : "draft"}>
+                        {versionTag}
+                      </Badge>
+                    ) : null}
+                    <strong>v{promptVersion.version}</strong>
+                  </div>
+                  <Button
+                    disabled={promotingVersion === promptVersion.version}
+                    onClick={() => onPromoteVersion(promptVersion)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {promotingVersion === promptVersion.version
+                      ? "Working..."
+                      : promptVersion.status === "LIVE"
+                        ? "Rollback here"
+                        : "Make live"}
+                  </Button>
                 </div>
-                <Button
-                  disabled={promotingVersion === promptVersion.version}
-                  onClick={() => onPromoteVersion(promptVersion)}
-                  type="button"
-                  variant="secondary"
-                >
-                  {promotingVersion === promptVersion.version
-                    ? "Working..."
-                    : promptVersion.status === "LIVE"
-                      ? "Rollback here"
-                      : "Make live"}
-                </Button>
-              </div>
+
+                <div className="tag-manager">
+                  <label>Tag:</label>
+                  <select
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      if (value) {
+                        onSetTag(promptVersion, value);
+                      }
+                    }}
+                    value={versionTag ?? ""}
+                  >
+                    <option value="">untagged</option>
+                    {AVAILABLE_TAGS.map((tag) => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
+                  {versionTag ? (
+                    <Button
+                      onClick={() => onRemoveTag(versionTag)}
+                      type="button"
+                      variant="ghost"
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
 
               <pre>{promptVersion.template}</pre>
               {promptVersion.variableSchema && typeof promptVersion.variableSchema === "object" ? (
@@ -599,7 +653,8 @@ export function PromptVersionsSection({
                 {new Date(promptVersion.createdAt).toLocaleString()}
               </small>
             </article>
-          ))}
+          );
+          })}
         </div>
       </Card>
 
