@@ -19,8 +19,42 @@
   --ring: #09090b;
   --radius: 12px;
   --shadow: 0 24px 80px rgba(24, 24, 27, 0.08);
+  --muted-surface: #fafafa;
+  --code-bg: #09090b;
+  --code-foreground: #fafafa;
+  --focus-ring-soft: 0 0 0 3px rgba(212, 212, 216, 0.16);
+  --focus-ring-strong: 0 0 0 3px rgba(9, 9, 11, 0.1);
+  color-scheme: light;
   --font-sans: "Geist", "Inter", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SFMono-Regular", "Geist Mono", "IBM Plex Mono", Consolas, monospace;
+}
+
+.dark {
+  --background: #0a0a0b;
+  --foreground: #f4f4f5;
+  --card: #121214;
+  --card-foreground: #f4f4f5;
+  --popover: #121214;
+  --popover-foreground: #f4f4f5;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --secondary: #1b1b1e;
+  --secondary-foreground: #e4e4e7;
+  --muted: #1b1b1e;
+  --muted-foreground: #a1a1aa;
+  --accent: #1b1b1e;
+  --accent-foreground: #f4f4f5;
+  --destructive: #fafafa;
+  --border: #26262a;
+  --input: #3f3f46;
+  --ring: #e4e4e7;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  --muted-surface: #161619;
+  --code-bg: #000000;
+  --code-foreground: #f4f4f5;
+  --focus-ring-soft: 0 0 0 3px rgba(244, 244, 245, 0.14);
+  --focus-ring-strong: 0 0 0 3px rgba(244, 244, 245, 0.12);
+  color-scheme: dark;
 }
 
 * {
@@ -106,7 +140,7 @@ summary:focus-visible {
   min-height: 100%;
   padding: clamp(36px, 5vw, 72px);
   border-right: 1px solid var(--border);
-  background: #fafafa;
+  background: var(--muted-surface);
 }
 
 .brand-card > div:first-child {
@@ -229,14 +263,14 @@ summary:focus-visible {
 
 .auth-heading .eyebrow,
 .dashboard-card-hero .eyebrow {
-  color: #71717a;
-  border-color: #e4e4e7;
-  background: #fafafa;
+  color: var(--muted-foreground);
+  border-color: var(--border);
+  background: var(--muted-surface);
 }
 
 .auth-heading h2 {
   margin: 18px 0 8px;
-  color: #09090b;
+  color: var(--foreground);
   font-size: 30px;
   font-weight: 650;
   letter-spacing: -0.04em;
@@ -244,20 +278,20 @@ summary:focus-visible {
 
 .auth-heading p {
   margin: 0 0 8px;
-  color: #71717a;
+  color: var(--muted-foreground);
   line-height: 1.55;
 }
 
 .auth-card .status-message {
-  color: #52525b;
+  color: var(--muted-foreground);
 }
 
 .auth-card .field label {
-  color: #18181b;
+  color: var(--foreground);
 }
 
 .auth-card .status-message.error {
-  color: #09090b;
+  color: var(--foreground);
 }
 
 .ui-tabs {
@@ -267,9 +301,9 @@ summary:focus-visible {
   width: min(100%, 420px);
   height: 48px;
   padding: 4px;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #f4f4f5;
+  background: var(--secondary);
 }
 
 .ui-tabs-trigger {
@@ -277,14 +311,14 @@ summary:focus-visible {
   border-radius: 9px;
   min-height: 38px;
   padding: 8px 14px;
-  color: #71717a;
+  color: var(--muted-foreground);
   background: transparent;
   font-weight: 500;
 }
 
 .ui-tabs-trigger.active {
-  color: #fafafa;
-  background: #09090b;
+  color: var(--primary-foreground);
+  background: var(--primary);
 }
 
 .form-stack {
@@ -309,7 +343,7 @@ summary:focus-visible {
 }
 
 .field label {
-  color: #18181b;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 500;
 }
@@ -328,9 +362,9 @@ summary:focus-visible {
 
 .auth-card .ui-input,
 .auth-card .ui-textarea {
-  border-color: #e4e4e7;
-  color: #09090b;
-  background: #ffffff;
+  border-color: var(--border);
+  color: var(--foreground);
+  background: var(--card);
 }
 
 .ui-input::placeholder,
@@ -340,19 +374,19 @@ summary:focus-visible {
 
 .auth-card .ui-input::placeholder,
 .auth-card .ui-textarea::placeholder {
-  color: #a1a1aa;
+  color: var(--muted-foreground);
 }
 
 .ui-input:focus,
 .ui-textarea:focus {
   border-color: var(--ring);
-  box-shadow: 0 0 0 3px rgba(212, 212, 216, 0.16);
+  box-shadow: var(--focus-ring-soft);
 }
 
 .auth-card .ui-input:focus,
 .auth-card .ui-textarea:focus {
-  border-color: #09090b;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.1);
+  border-color: var(--ring);
+  box-shadow: var(--focus-ring-strong);
 }
 
 .ui-button {
@@ -373,8 +407,8 @@ summary:focus-visible {
 }
 
 .auth-card .ui-button-default {
-  color: #fafafa;
-  background: #09090b;
+  color: var(--primary-foreground);
+  background: var(--primary);
 }
 
 .ui-button-secondary {
@@ -394,7 +428,44 @@ summary:focus-visible {
 }
 
 .auth-card .ui-button:hover {
-  border-color: #09090b;
+  border-color: var(--ring);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: transparent;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.theme-toggle .theme-icon-sun {
+  display: none;
+}
+
+.dark .theme-toggle .theme-icon-sun {
+  display: block;
+}
+
+.dark .theme-toggle .theme-icon-moon {
+  display: none;
+}
+
+.theme-toggle:hover {
+  border-color: var(--ring);
+  color: var(--foreground);
+}
+
+.theme-toggle-fixed {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 30;
 }
 
 .status-message {
@@ -404,7 +475,7 @@ summary:focus-visible {
 }
 
 .status-message.error {
-  color: #09090b;
+  color: var(--foreground);
 }
 
 .toast {
@@ -487,7 +558,7 @@ summary:focus-visible {
 
 .dashboard-card-hero p,
 .dashboard-card-hero .metric-card span {
-  color: #71717a;
+  color: var(--muted-foreground);
 }
 
 .dashboard-card-hero .ui-button-secondary {
@@ -558,6 +629,12 @@ summary:focus-visible {
   justify-content: space-between;
 }
 
+.dashboard-header-actions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .dashboard-header h1 {
   margin: 14px 0 8px;
   font-size: clamp(34px, 4vw, 56px);
@@ -581,7 +658,7 @@ summary:focus-visible {
   display: block;
   overflow: hidden;
   margin-top: 10px;
-  color: #09090b;
+  color: var(--foreground);
   font-size: 28px;
   font-weight: 650;
   letter-spacing: -0.04em;
@@ -710,8 +787,8 @@ summary:focus-visible {
   overflow: auto;
   border-radius: 10px;
   padding: 12px;
-  color: var(--foreground);
-  background: #09090b;
+  color: var(--code-foreground);
+  background: var(--code-bg);
   font-family: var(--font-mono);
   font-size: 13px;
   white-space: nowrap;

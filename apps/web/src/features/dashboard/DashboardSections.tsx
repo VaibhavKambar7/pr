@@ -15,6 +15,7 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 type SectionStateProps = {
   title: string;
@@ -57,9 +58,12 @@ export function DashboardSummary({
             one of these projects.
           </p>
         </div>
-        <Button onClick={onLogout} variant="secondary">
-          Log out
-        </Button>
+        <div className="dashboard-header-actions">
+          <ThemeToggle />
+          <Button onClick={onLogout} variant="secondary">
+            Log out
+          </Button>
+        </div>
       </div>
 
       <div className="metric-grid">
