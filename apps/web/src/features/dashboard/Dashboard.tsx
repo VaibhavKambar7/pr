@@ -123,7 +123,6 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [promptName, setPromptName] = useState("");
-  const [promptSlug, setPromptSlug] = useState("");
   const [promptDescription, setPromptDescription] = useState("");
   const [promptMessage, setPromptMessage] = useState("Select a project to load prompts.");
   const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([]);
@@ -220,13 +219,11 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       onCreatePrompt={handleCreatePrompt}
       onPromptDescriptionChange={setPromptDescription}
       onPromptNameChange={setPromptName}
-      onPromptSlugChange={setPromptSlug}
       onSelectPrompt={handleSelectPrompt}
       promptDescription={promptDescription}
       promptMessage={promptMessage}
       promptName={promptName}
       prompts={prompts}
-      promptSlug={promptSlug}
       selectedProject={selectedProject}
       selectedPrompt={selectedPrompt}
       selectedPromptId={selectedPromptId}
@@ -806,11 +803,8 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     }
 
     let name: string;
-    let slug: string | undefined;
-
     try {
       name = validateName(promptName, "prompt name");
-      slug = validateOptionalSlug(promptSlug);
     } catch (error) {
       setIsPromptError(true);
       setPromptMessage(error instanceof Error ? error.message : "Invalid prompt input");
@@ -824,7 +818,6 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
     try {
       const result = await createPrompt(accessToken, selectedProjectId, {
         name,
-        slug,
         description: promptDescription.trim() || undefined,
       });
 
@@ -832,7 +825,6 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       setSelectedPromptId(result.prompt.id);
       setActiveView("versions");
       setPromptName("");
-      setPromptSlug("");
       setPromptDescription("");
       setPromptMessage("Prompt created and selected.");
     } catch (error) {
@@ -986,15 +978,11 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       );
 
       setPromptTags((currentTags) => {
-        const existingIndex = currentTags.findIndex((t) => t.tag === tag);
+        const nextTags = currentTags.filter(
+          (currentTag) => currentTag.tag !== tag && currentTag.versionId !== result.tag.versionId,
+        );
 
-        if (existingIndex >= 0) {
-          const updated = [...currentTags];
-          updated[existingIndex] = result.tag;
-          return updated;
-        }
-
-        return [...currentTags, result.tag];
+        return [...nextTags, result.tag];
       });
 
       setVersionMessage(`Tag "${tag}" set on version ${promptVersion.version}.`);

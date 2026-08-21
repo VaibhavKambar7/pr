@@ -165,7 +165,6 @@ export function ProjectSection({
               id="project-name"
               minLength={2}
               onChange={(event) => onProjectNameChange(event.target.value)}
-              placeholder="Customer Support AI"
               required
               value={projectName}
             />
@@ -178,7 +177,6 @@ export function ProjectSection({
               minLength={2}
               onChange={(event) => onProjectSlugChange(event.target.value)}
               pattern="[a-z0-9]+(-[a-z0-9]+)*"
-              placeholder="customer-support-ai"
               title="Use lowercase letters, numbers, and hyphens"
               value={projectSlug}
             />
@@ -190,7 +188,6 @@ export function ProjectSection({
               id="project-description"
               maxLength={500}
               onChange={(event) => onProjectDescriptionChange(event.target.value)}
-              placeholder="Prompts used by the support automation service."
               rows={4}
               value={projectDescription}
             />
@@ -310,7 +307,6 @@ export function ApiKeysSection({
               id="api-key-name"
               minLength={2}
               onChange={(event) => onApiKeyNameChange(event.target.value)}
-              placeholder="support-service-dev"
               required
               value={apiKeyName}
             />
@@ -345,7 +341,6 @@ type PromptRegistrySectionProps = {
   prompts: Prompt[];
   selectedPromptId: string | null;
   promptName: string;
-  promptSlug: string;
   promptDescription: string;
   promptMessage: string;
   isPromptError: boolean;
@@ -353,7 +348,6 @@ type PromptRegistrySectionProps = {
   isCreatingPrompt: boolean;
   onSelectPrompt: (promptId: string) => void;
   onPromptNameChange: (value: string) => void;
-  onPromptSlugChange: (value: string) => void;
   onPromptDescriptionChange: (value: string) => void;
   onCreatePrompt: FormEventHandler<HTMLFormElement>;
 };
@@ -364,7 +358,6 @@ export function PromptRegistrySection({
   prompts,
   selectedPromptId,
   promptName,
-  promptSlug,
   promptDescription,
   promptMessage,
   isPromptError,
@@ -372,7 +365,6 @@ export function PromptRegistrySection({
   isCreatingPrompt,
   onSelectPrompt,
   onPromptNameChange,
-  onPromptSlugChange,
   onPromptDescriptionChange,
   onCreatePrompt,
 }: PromptRegistrySectionProps) {
@@ -442,23 +434,8 @@ export function PromptRegistrySection({
               id="prompt-name"
               minLength={2}
               onChange={(event) => onPromptNameChange(event.target.value)}
-              placeholder="Support reply generator"
               required
               value={promptName}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="prompt-slug">Slug optional</label>
-            <Input
-              disabled={!selectedProject}
-              id="prompt-slug"
-              minLength={2}
-              onChange={(event) => onPromptSlugChange(event.target.value)}
-              pattern="[a-z0-9]+(-[a-z0-9]+)*"
-              placeholder="support-reply-generator"
-              title="Use lowercase letters, numbers, and hyphens"
-              value={promptSlug}
             />
           </div>
 
@@ -469,7 +446,6 @@ export function PromptRegistrySection({
               id="prompt-description"
               maxLength={500}
               onChange={(event) => onPromptDescriptionChange(event.target.value)}
-              placeholder="Creates concise customer support replies using ticket context."
               rows={4}
               value={promptDescription}
             />
@@ -675,7 +651,6 @@ export function PromptVersionsSection({
               disabled={!selectedPrompt}
               id="version-template"
               onChange={(event) => onVersionTemplateChange(event.target.value)}
-              placeholder="Write a concise support reply for {{ customer_name }} about {{ issue }}."
               required
               rows={7}
               value={versionTemplate}
@@ -688,7 +663,6 @@ export function PromptVersionsSection({
               disabled={!selectedPrompt}
               id="version-model"
               onChange={(event) => onVersionModelChange(event.target.value)}
-              placeholder="gpt-4.1-mini"
               value={versionModel}
             />
           </div>
