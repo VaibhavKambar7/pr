@@ -248,9 +248,12 @@ summary:focus-visible {
   line-height: 1.55;
 }
 
-.auth-card .field label,
 .auth-card .status-message {
   color: #52525b;
+}
+
+.auth-card .field label {
+  color: #18181b;
 }
 
 .auth-card .status-message.error {
@@ -306,7 +309,7 @@ summary:focus-visible {
 }
 
 .field label {
-  color: #d4d4d8;
+  color: #18181b;
   font-size: 14px;
   font-weight: 500;
 }
