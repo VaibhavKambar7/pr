@@ -166,6 +166,16 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
   const selectedPrompt = prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
   const liveVersion = promptVersions.find((promptVersion) => promptVersion.status === "LIVE") ?? null;
 
+  function handleSelectProject(projectId: string) {
+    setSelectedProjectId(projectId);
+    setActiveView("prompts");
+  }
+
+  function handleSelectPrompt(promptId: string) {
+    setSelectedPromptId(promptId);
+    setActiveView("versions");
+  }
+
   const projectSection = (
     <ProjectSection
       isCreatingProject={isCreatingProject}
@@ -175,7 +185,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       onProjectDescriptionChange={setProjectDescription}
       onProjectNameChange={setProjectName}
       onProjectSlugChange={setProjectSlug}
-      onSelectProject={setSelectedProjectId}
+      onSelectProject={handleSelectProject}
       projectDescription={projectDescription}
       projectMessage={projectMessage}
       projectName={projectName}
@@ -211,7 +221,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       onPromptDescriptionChange={setPromptDescription}
       onPromptNameChange={setPromptName}
       onPromptSlugChange={setPromptSlug}
-      onSelectPrompt={setSelectedPromptId}
+      onSelectPrompt={handleSelectPrompt}
       promptDescription={promptDescription}
       promptMessage={promptMessage}
       promptName={promptName}
@@ -700,6 +710,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
       setProjects((currentProjects) => [result.project, ...currentProjects]);
       setSelectedProjectId(result.project.id);
+      setActiveView("prompts");
       setProjectName("");
       setProjectSlug("");
       setProjectDescription("");
@@ -819,6 +830,7 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
 
       setPrompts((currentPrompts) => [result.prompt, ...currentPrompts]);
       setSelectedPromptId(result.prompt.id);
+      setActiveView("versions");
       setPromptName("");
       setPromptSlug("");
       setPromptDescription("");
