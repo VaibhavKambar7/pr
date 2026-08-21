@@ -6,3 +6,5 @@ dist
 coverage
 AGENTS.md
 PLAN.md
+.agents/
+skills-lock.json

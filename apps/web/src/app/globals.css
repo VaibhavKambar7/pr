@@ -286,7 +286,8 @@ summary:focus-visible {
 
 .form-stack {
   display: grid;
-  width: min(100%, 420px);
+  width: 100%;
+  max-width: 420px;
   gap: 14px;
   margin-top: 20px;
 }
@@ -301,6 +302,7 @@ summary:focus-visible {
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .field label {
@@ -542,6 +544,10 @@ summary:focus-visible {
   min-width: 0;
 }
 
+.dashboard-main .ui-card {
+  min-width: 0;
+}
+
 .dashboard-header {
   display: flex;
   gap: 18px;
@@ -587,8 +593,12 @@ summary:focus-visible {
 .runtime-grid,
 .execution-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 18px;
+}
+
+.dashboard-main .form-stack {
+  max-width: none;
 }
 
 .section-heading h2 {
@@ -597,6 +607,7 @@ summary:focus-visible {
   font-weight: 650;
   letter-spacing: -0.04em;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .section-heading p {
@@ -739,6 +750,34 @@ summary:focus-visible {
   font-size: 18px;
 }
 
+.tag-manager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.tag-manager label {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tag-manager select {
+  min-width: 150px;
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 34px 8px 12px;
+  color: var(--foreground);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%) right 14px center / 6px 6px no-repeat,
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%) right 9px center / 6px 6px no-repeat,
+    var(--secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
 .version-card pre,
 .schema-details pre,
 .rendered-prompt,
@@ -747,7 +786,7 @@ summary:focus-visible {
   margin: 0;
   border: 1px solid var(--border);
   color: var(--foreground);
-  background: #09090b;
+  background: var(--secondary);
   font-family: var(--font-mono);
   line-height: 1.6;
   white-space: pre-wrap;

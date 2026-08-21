@@ -582,6 +582,12 @@ export function PromptVersionsSection({
         <div className="version-list">
           {promptVersions.map((promptVersion) => {
             const versionTag = getVersionTag(promptVersion);
+            const isLiveVersion = promptVersion.status === "LIVE";
+            const versionActionLabel = isLiveVersion
+              ? "Live"
+              : liveVersion
+                ? "Rollback to this"
+                : "Make live";
 
             return (
               <article className="version-card" key={promptVersion.id}>
@@ -598,22 +604,19 @@ export function PromptVersionsSection({
                     <strong>v{promptVersion.version}</strong>
                   </div>
                   <Button
-                    disabled={promotingVersion === promptVersion.version}
+                    disabled={isLiveVersion || promotingVersion === promptVersion.version}
                     onClick={() => onPromoteVersion(promptVersion)}
                     type="button"
                     variant="secondary"
                   >
-                    {promotingVersion === promptVersion.version
-                      ? "Working..."
-                      : promptVersion.status === "LIVE"
-                        ? "Rollback here"
-                        : "Make live"}
+                    {promotingVersion === promptVersion.version ? "Working..." : versionActionLabel}
                   </Button>
                 </div>
 
                 <div className="tag-manager">
-                  <label>Tag:</label>
+                  <label htmlFor={`version-tag-${promptVersion.id}`}>Tag</label>
                   <select
+                    id={`version-tag-${promptVersion.id}`}
                     onChange={(e) => {
                       const value = e.target.value;
 

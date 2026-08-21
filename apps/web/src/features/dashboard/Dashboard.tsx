@@ -918,12 +918,22 @@ export function Dashboard({ accessToken, user, onLogout }: DashboardProps) {
       return;
     }
 
+    if (promptVersion.status === "LIVE") {
+      setIsVersionError(false);
+      setVersionMessage(`Version ${promptVersion.version} is already live.`);
+      return;
+    }
+
     setPromotingVersion(promptVersion.version);
     setIsVersionError(false);
-    setVersionMessage(`Promoting version ${promptVersion.version}...`);
+    setVersionMessage(
+      liveVersion
+        ? `Rolling back to version ${promptVersion.version}...`
+        : `Promoting version ${promptVersion.version}...`,
+    );
 
     try {
-      const action = promptVersion.status === "LIVE" ? rollbackPromptVersion : promotePromptVersion;
+      const action = liveVersion ? rollbackPromptVersion : promotePromptVersion;
       const result = await action(
         accessToken,
         selectedProjectId,

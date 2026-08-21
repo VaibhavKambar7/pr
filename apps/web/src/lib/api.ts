@@ -211,6 +211,25 @@ export function formatApiError(error: unknown): string {
   return message;
 }
 
+function getApiErrorMessage(body: ApiErrorResponse): string {
+  if (typeof body.error === "string") {
+    return body.error;
+  }
+
+  if (typeof body.error === "object" && body.error !== null) {
+    const { code, message, issues } = body.error;
+
+    if (issues !== undefined && issues.length > 0) {
+      const issueMessages = issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ");
+      return `${message || code}: ${issueMessages}`;
+    }
+
+    return message || code;
+  }
+
+  return "request failed";
+}
+
 async function request<T>(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
 
@@ -225,8 +244,7 @@ async function request<T>(path: string, init?: RequestInit) {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorResponse;
-    const errorMessage = typeof body.error === "object" ? JSON.stringify(body.error) : (body.error ?? "request failed");
-    throw new Error(errorMessage);
+    throw new Error(getApiErrorMessage(body));
   }
 
   if (response.status === 204) {
