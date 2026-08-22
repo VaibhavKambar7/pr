@@ -193,36 +193,42 @@ export async function findTagByPromptAndName(promptId: string, tag: string) {
 }
 
 export async function upsertTag(promptId: string, versionId: string, tag: string) {
-  const existing = await prisma.promptVersionTag.findUnique({
-    where: {
-      promptId_tag: {
-        promptId,
-        tag,
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.promptVersionTag.findUnique({
+      where: {
+        promptId_tag: {
+          promptId,
+          tag,
+        },
       },
-    },
-  });
+    });
 
-  if (existing) {
-    if (existing.versionId === versionId) {
+    if (existing && existing.versionId === versionId) {
       return existing;
     }
 
-    return prisma.promptVersionTag.update({
-      where: {
-        id: existing.id,
-      },
+    await tx.promptVersionTag.deleteMany({
+      where: { versionId },
+    });
+
+    if (existing) {
+      return tx.promptVersionTag.update({
+        where: {
+          id: existing.id,
+        },
+        data: {
+          versionId,
+        },
+      });
+    }
+
+    return tx.promptVersionTag.create({
       data: {
+        promptId,
         versionId,
+        tag,
       },
     });
-  }
-
-  return prisma.promptVersionTag.create({
-    data: {
-      promptId,
-      versionId,
-      tag,
-    },
   });
 }
 
