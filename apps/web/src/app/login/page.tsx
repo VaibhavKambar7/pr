@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthHero } from "../../features/auth/AuthHero";
-import { AuthPanel } from "../../features/auth/AuthPanel";
-import { RouteLoading } from "../../features/navigation/RouteLoading";
-import { ThemeToggle } from "../../features/theme/ThemeToggle";
-import { getMe, type AuthResponse } from "../../lib/api";
-import { clearAuthSession, getStoredAccessToken, storeAuthSession } from "../../lib/auth-session";
+import { AuthHero } from "@/features/auth/AuthHero";
+import { AuthPanel } from "@/features/auth/AuthPanel";
+import { RouteLoading } from "@/features/navigation/RouteLoading";
+import { ThemeToggle } from "@/features/theme/ThemeToggle";
+import { getMe, type AuthResponse } from "@/lib/api";
+import { clearAuthSession, getStoredAccessToken, storeAuthSession } from "@/lib/auth-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,9 +46,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="page-shell">
-      <ThemeToggle className="theme-toggle-fixed" />
-      <div className="hero-grid">
+    <main className="min-h-screen p-5">
+      <ThemeToggle className="fixed right-6 top-6 z-30" />
+      <div className="mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-[1240px] overflow-hidden rounded-3xl border bg-card shadow-sm lg:min-h-[calc(100vh-2.5rem)] lg:grid-cols-2">
         <AuthHero />
         <AuthPanel onAuthenticated={handleAuthenticated} />
       </div>

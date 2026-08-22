@@ -8,3 +8,5 @@ AGENTS.md
 PLAN.md
 .agents/
 skills-lock.json
+docker-compose.override.yml
+tsconfig.tsbuildinfo

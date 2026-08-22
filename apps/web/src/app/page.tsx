@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RouteLoading } from "../features/navigation/RouteLoading";
-import { getStoredAccessToken } from "../lib/auth-session";
+import { RouteLoading } from "@/features/navigation/RouteLoading";
+import { getStoredAccessToken } from "@/lib/auth-session";
 
 export default function HomePage() {
   const router = useRouter();

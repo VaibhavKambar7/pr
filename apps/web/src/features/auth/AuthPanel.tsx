@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Button } from "../../components/ui/button";
-import { Card } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
-import { Tabs, TabsTrigger } from "../../components/ui/tabs";
-import { login, register, type AuthResponse } from "../../lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { login, register, type AuthResponse } from "@/lib/api";
 import { Toast } from "../feedback/Toast";
 
 type AuthMode = "login" | "register";
@@ -102,85 +103,101 @@ export function AuthPanel({ onAuthenticated }: AuthPanelProps) {
 
   return (
     <>
-      <Card as="section" className="auth-card">
-        <div className="auth-heading">
-          <span className="eyebrow">console</span>
-          <h2>Sign in to Pr</h2>
-          <p>Manage projects, prompt versions, API keys, and runtime history.</p>
-        </div>
+      <section className="flex flex-col justify-center p-8 sm:p-12">
+        <div className="w-full max-w-sm">
+          <h2 className="text-2xl font-semibold tracking-tight">Sign in to Pr</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+            Manage projects, prompt versions, API keys, and runtime history.
+          </p>
 
-        <Tabs aria-label="Authentication mode">
-          <TabsTrigger
-            active={mode === "login"}
-            disabled={isSubmitting}
-            onClick={() => setMode("login")}
-            type="button"
+          <Tabs
+            className="mt-6 gap-0"
+            onValueChange={(value) => {
+              setMode(value as AuthMode);
+              setIsError(false);
+              setMessage("Use your API server on port 3001, then sign in here.");
+            }}
+            value={mode}
           >
-            Log in
-          </TabsTrigger>
-          <TabsTrigger
-            active={mode === "register"}
-            disabled={isSubmitting}
-            onClick={() => setMode("register")}
-            type="button"
-          >
-            Register
-          </TabsTrigger>
-        </Tabs>
-
-        <form className="form-stack" onSubmit={handleSubmit}>
-          {mode === "register" ? (
-            <div className="field">
-              <label htmlFor="name">Name</label>
-              <Input
+            <TabsList className="grid w-full grid-cols-2 rounded-lg border bg-secondary p-1">
+              <TabsTrigger
+                className="rounded-md border-b-0 py-1.5 data-[state=active]:bg-primary data-[state=active]:rounded-md data-[state=active]:border-transparent data-[state=active]:text-primary-foreground data-[state=active]:font-medium"
                 disabled={isSubmitting}
-                id="name"
-                autoComplete="name"
-                minLength={2}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Vaibhav"
+                value="login"
+              >
+                Log in
+              </TabsTrigger>
+              <TabsTrigger
+                className="rounded-md border-b-0 py-1.5 data-[state=active]:bg-primary data-[state=active]:rounded-md data-[state=active]:border-transparent data-[state=active]:text-primary-foreground data-[state=active]:font-medium"
+                disabled={isSubmitting}
+                value="register"
+              >
+                Register
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <form className="mt-6 grid gap-3.5" onSubmit={handleSubmit}>
+            {mode === "register" ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  autoComplete="name"
+                  disabled={isSubmitting}
+                  id="name"
+                  minLength={2}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Vaibhav"
+                  required
+                  value={name}
+                />
+              </div>
+            ) : null}
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                autoComplete="email"
+                disabled={isSubmitting}
+                id="email"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
                 required
-                value={name}
+                type="email"
+                value={email}
               />
             </div>
-          ) : null}
 
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <Input
-              disabled={isSubmitting}
-              id="email"
-              autoComplete="email"
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              required
-              type="email"
-              value={email}
-            />
-          </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                disabled={isSubmitting}
+                id="password"
+                minLength={8}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="minimum 8 characters"
+                required
+                type="password"
+                value={password}
+              />
+            </div>
 
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <Input
-              disabled={isSubmitting}
-              id="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              minLength={8}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="minimum 8 characters"
-              required
-              type="password"
-              value={password}
-            />
-          </div>
+            <Button className="mt-1.5 h-10" disabled={isSubmitting} type="submit">
+              {isSubmitting ? "Working..." : mode === "login" ? "Enter dashboard" : "Create account"}
+            </Button>
+          </form>
 
-          <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Working..." : mode === "login" ? "Enter dashboard" : "Create account"}
-          </Button>
-        </form>
-
-        <p className={`status-message ${isError ? "error" : ""}`}>{message}</p>
-      </Card>
+          <p
+            className={cn(
+              "mt-4 font-mono text-xs leading-relaxed",
+              isError ? "text-destructive" : "text-muted-foreground",
+            )}
+          >
+            {message}
+          </p>
+        </div>
+      </section>
 
       {toastMessage ? (
         <Toast message={toastMessage} onDismiss={() => setToastMessage("")} tone={toastTone} />

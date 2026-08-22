@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Dashboard } from "../../features/dashboard/Dashboard";
-import { RouteLoading } from "../../features/navigation/RouteLoading";
-import { getMe, type AuthUser } from "../../lib/api";
-import { clearAuthSession, getStoredAccessToken } from "../../lib/auth-session";
+import { ConsoleApp } from "@/features/console/ConsoleApp";
+import { RouteLoading } from "@/features/navigation/RouteLoading";
+import { getMe, type AuthUser } from "@/lib/api";
+import { clearAuthSession, getStoredAccessToken } from "@/lib/auth-session";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -51,5 +51,5 @@ export default function DashboardPage() {
     );
   }
 
-  return <Dashboard accessToken={accessToken} user={user} onLogout={handleLogout} />;
+  return <ConsoleApp accessToken={accessToken} user={user} onLogout={handleLogout} />;
 }
