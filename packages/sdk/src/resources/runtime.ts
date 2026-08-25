@@ -20,7 +20,7 @@ export class RuntimeResource {
       signal: options.signal,
     };
 
-    return request<RuntimeGetResult>(this.context, this.projectPath(promptId), requestOptions);
+    return request<RuntimeGetResult>(this.context, this.projectPath(promptId, "/live"), requestOptions);
   }
 
   async render(promptId: string, input: RenderPromptInput): Promise<RuntimeRenderResult> {
