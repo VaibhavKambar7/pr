@@ -11,3 +11,6 @@ skills-lock.json
 docker-compose.override.yml
 tsconfig.tsbuildinfo
 sdk.md
+__pycache__
+*.pyc
+.venv
