@@ -13,6 +13,7 @@ export async function versionIdempotencyKey(
     variableSchema?: Record<string, unknown>;
     model?: string;
     modelParams?: Record<string, unknown>;
+    changeNotes?: string;
   },
 ): Promise<string> {
   const payload = JSON.stringify({
@@ -20,6 +21,7 @@ export async function versionIdempotencyKey(
     variableSchema: input.variableSchema ?? null,
     model: input.model ?? null,
     modelParams: input.modelParams ?? null,
+    changeNotes: input.changeNotes ?? null,
   });
   const hash = await sha256Hex(payload);
   return `cv:${promptId}:${hash}`;

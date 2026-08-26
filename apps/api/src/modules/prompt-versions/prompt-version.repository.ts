@@ -89,6 +89,7 @@ export async function createPromptVersion(
         modelParams: input.modelParams,
         idempotencyKey: idempotencyKey ?? null,
         requestHash: requestHash ?? null,
+        changeNotes: input.changeNotes ?? null,
       },
     });
 

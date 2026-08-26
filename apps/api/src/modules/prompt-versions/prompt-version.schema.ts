@@ -7,6 +7,7 @@ export const createPromptVersionSchema = z
     variableSchema: z.record(z.string(), z.unknown()).optional(),
     model: z.string().trim().min(1).max(120).optional(),
     modelParams: z.record(z.string(), z.unknown()).optional(),
+    changeNotes: z.string().trim().min(1).max(300).optional()
   })
   .strict();
 

@@ -142,6 +142,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [isVersionComposerOpen, setIsVersionComposerOpen] = useState(false);
   const [versionTemplate, setVersionTemplate] = useState("");
+  const [versionChangeNotes, setVersionChangeNotes] = useState("");
   const [versionModel, setVersionModel] = useState("");
   const [versionModelParams, setVersionModelParams] = useState(DEFAULT_MODEL_PARAMS);
   const [versionVariableSchema, setVersionVariableSchema] = useState("");
@@ -476,6 +477,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     () => ({
       isOpen: isVersionComposerOpen,
       template: versionTemplate,
+      changeNotes: versionChangeNotes,
       model: versionModel,
       modelParams: versionModelParams,
       variableSchema: versionVariableSchema,
@@ -483,6 +485,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     [
       isVersionComposerOpen,
       versionTemplate,
+      versionChangeNotes,
       versionModel,
       versionModelParams,
       versionVariableSchema,
@@ -589,11 +592,13 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   }
 
   function handleComposerFieldChange(
-    field: "template" | "model" | "modelParams" | "variableSchema",
+    field: "template" | "changeNotes" | "model" | "modelParams" | "variableSchema",
     value: string,
   ) {
     if (field === "template") {
       setVersionTemplate(value);
+    } else if (field === "changeNotes") {
+      setVersionChangeNotes(value);
     } else if (field === "model") {
       setVersionModel(value);
     } else if (field === "modelParams") {
@@ -637,6 +642,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
 
     const template = versionTemplate.trim();
     const model = versionModel.trim();
+    const changeNotes = versionChangeNotes.trim();
 
     if (template.length < 3) {
       setVersionMessage({
@@ -668,6 +674,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       variableSchema,
       model: model || undefined,
       modelParams,
+      changeNotes: changeNotes || undefined,
     });
 
     setIsCreatingVersion(true);
@@ -682,12 +689,14 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
           variableSchema,
           model: model || undefined,
           modelParams,
+          changeNotes: changeNotes || undefined,
         },
         idempotencyKey,
       );
 
       setPromptVersions((current) => [result.promptVersion, ...current]);
       setVersionTemplate("");
+      setVersionChangeNotes("");
       setVersionModel("");
       setVersionVariableSchema("");
       setVersionModelParams(DEFAULT_MODEL_PARAMS);

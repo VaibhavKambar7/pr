@@ -73,6 +73,7 @@ model PromptVersion {
   requestHash     String?
   executions      Execution[]
   tag             PromptVersionTag?
+  changeNotes     String?
   createdAt       DateTime            @default(now())
   promotedAt      DateTime?
   archivedAt      DateTime?

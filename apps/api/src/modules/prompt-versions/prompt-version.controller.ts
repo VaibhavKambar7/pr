@@ -28,12 +28,14 @@ function toCreatePromptVersionInput(input: {
   variableSchema?: Record<string, unknown>;
   model?: string;
   modelParams?: Record<string, unknown>;
+  changeNotes?: string;
 }) {
   return {
     template: input.template,
     variableSchema: input.variableSchema,
     model: input.model,
     modelParams: input.modelParams as Prisma.InputJsonValue | undefined,
+    changeNotes: input.changeNotes
   };
 }
 

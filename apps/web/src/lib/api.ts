@@ -96,6 +96,7 @@ export type PromptVersion = {
   variableSchema: Record<string, unknown> | null;
   model: string | null;
   modelParams: unknown;
+  changeNotes: string | null;
   createdAt: string;
   promotedAt: string | null;
   archivedAt: string | null;
@@ -106,6 +107,7 @@ type CreatePromptVersionInput = {
   variableSchema?: Record<string, unknown>;
   model?: string;
   modelParams?: Record<string, unknown>;
+  changeNotes?: string;
 };
 
 type RenderLivePromptInput = {

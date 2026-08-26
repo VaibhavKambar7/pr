@@ -131,6 +131,7 @@ export function StatusLine({ message }: { message: StatusMessage }) {
 type VersionComposer = {
   isOpen: boolean;
   template: string;
+  changeNotes: string;
   model: string;
   modelParams: string;
   variableSchema: string;
@@ -218,6 +219,17 @@ export function VersionLedger({
               required
               rows={7}
               value={composer.template}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="version-change-notes">What changed? optional</Label>
+            <Input
+              disabled={isCreatingVersion}
+              id="version-change-notes"
+              maxLength={300}
+              onChange={(event) => onComposerFieldChange("changeNotes", event.target.value)}
+              placeholder="tightened refund wording"
+              value={composer.changeNotes}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -339,6 +351,9 @@ export function VersionLedger({
                       </div>
                     ) : null}
                   </div>
+                  {version.changeNotes ? (
+                    <p className="text-xs leading-relaxed text-foreground/80">{version.changeNotes}</p>
+                  ) : null}
                   <p className="font-mono text-[11.5px] text-muted-foreground">
                     {version.model ?? "no model"} ·{" "}
                     {version.status === "LIVE" && version.promotedAt
