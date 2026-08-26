@@ -16,7 +16,7 @@ export const buildApp = () => {
 
   void app.register(cors, {
     origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/],
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
     exposedHeaders: ["Idempotency-Replayed"],
   });
