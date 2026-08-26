@@ -148,6 +148,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [versionVariableSchema, setVersionVariableSchema] = useState("");
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [promotingVersion, setPromotingVersion] = useState<number | null>(null);
+  const [comparingVersion, setComparingVersion] = useState<PromptVersion | null>(null);
   const [versionMessage, setVersionMessage] = useState<StatusMessage>({
     text: "Select a prompt to load versions.",
     isError: false,
@@ -497,12 +498,18 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setProjectMenuOpen(false);
     setIsPromptComposerOpen(false);
     setIsVersionComposerOpen(false);
+    setComparingVersion(null);
     setActiveTab("versions");
   }
 
   function handleSelectPrompt(promptId: string) {
     setSelectedPromptId(promptId);
+    setComparingVersion(null);
     setActiveTab("versions");
+  }
+
+  function handleCompareVersion(version: PromptVersion) {
+    setComparingVersion((current) => (current?.id === version.id ? null : version));
   }
 
   function resetProjectFields() {
@@ -1407,12 +1414,15 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                 {activeTab === "versions" ? (
                   <VersionLedger
                     composer={composerState}
+                    comparingVersion={comparingVersion}
                     isCreatingVersion={isCreatingVersion}
                     isLoading={isLoadingVersions}
                     liveVersion={liveVersion}
                     message={versionMessage}
                     promotingVersion={promotingVersion}
                     tags={promptTags}
+                    onCompare={handleCompareVersion}
+                    onCloseCompare={() => setComparingVersion(null)}
                     onCreateVersion={handleCreateVersion}
                     onComposerFieldChange={handleComposerFieldChange}
                     onGenerateSchema={handleGenerateSchema}

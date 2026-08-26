@@ -16,6 +16,7 @@ import type {
   RuntimeRenderResult,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { VersionDiffView } from "./VersionDiff";
 
 export const VERSION_TAGS = ["production", "staging", "canary"];
 
@@ -146,6 +147,9 @@ type VersionLedgerProps = {
   isLoading: boolean;
   message: StatusMessage;
   composer: VersionComposer;
+  comparingVersion: PromptVersion | null;
+  onCompare: (version: PromptVersion) => void;
+  onCloseCompare: () => void;
   onToggleComposer: () => void;
   onComposerFieldChange: (
     field: Exclude<keyof VersionComposer, "isOpen">,
@@ -181,6 +185,9 @@ export function VersionLedger({
   isLoading,
   message,
   composer,
+  comparingVersion,
+  onCompare,
+  onCloseCompare,
   onToggleComposer,
   onComposerFieldChange,
   onGenerateSchema,
@@ -280,6 +287,20 @@ export function VersionLedger({
         </form>
       ) : null}
 
+      {comparingVersion && liveVersion ? (
+        <div className="mb-3 rounded-xl border bg-card p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              v{comparingVersion.version} → v{liveVersion.version} · live
+            </p>
+            <Button onClick={onCloseCompare} size="sm" type="button" variant="ghost">
+              Close diff
+            </Button>
+          </div>
+          <VersionDiffView newText={liveVersion.template} oldText={comparingVersion.template} />
+        </div>
+      ) : null}
+
       {isLoading ? (
         <p className="font-mono text-xs text-muted-foreground">Loading versions...</p>
       ) : versions.length === 0 ? (
@@ -362,6 +383,16 @@ export function VersionLedger({
                   </p>
                 </div>
                 <div className="flex flex-none items-center gap-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  {liveVersion && version.id !== liveVersion.id ? (
+                    <Button
+                      onClick={() => onCompare(version)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      {comparingVersion?.id === version.id ? "Close diff" : "Compare with live"}
+                    </Button>
+                  ) : null}
                   {version.status === "LIVE" ? (
                     previousVersion ? (
                       <Button
