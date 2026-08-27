@@ -4,13 +4,11 @@ dist
 .DS_Store
 .next
 coverage
-AGENTS.md
-PLAN.md
+md/
 .agents/
 skills-lock.json
 docker-compose.override.yml
 tsconfig.tsbuildinfo
-sdk.md
 __pycache__
 *.pyc
 .venv
