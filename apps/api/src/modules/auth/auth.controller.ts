@@ -3,6 +3,20 @@ import { getAuthenticatedUser, loginUser, registerUser } from "./auth.service.js
 import { loginSchema, registerSchema } from "./auth.schema.js";
 import "./auth.types.js";
 
+type AuthResult = Awaited<ReturnType<typeof registerUser>>;
+
+async function withAccessToken(reply: FastifyReply, result: AuthResult) {
+  const accessToken = await reply.jwtSign({
+    sub: result.user.id,
+    email: result.user.email,
+  });
+
+  return {
+    ...result,
+    accessToken,
+  };
+}
+
 export async function registerController(request: FastifyRequest, reply: FastifyReply) {
   const parsedBody = registerSchema.safeParse(request.body);
 
@@ -16,7 +30,7 @@ export async function registerController(request: FastifyRequest, reply: Fastify
   try {
     const result = await registerUser(parsedBody.data);
 
-    return reply.code(201).send(result);
+    return reply.code(201).send(await withAccessToken(reply, result));
   } catch (error) {
     const message = error instanceof Error ? error.message : "registration failed";
     const statusCode = message === "user already exists" ? 409 : 500;
@@ -38,7 +52,7 @@ export async function loginController(request: FastifyRequest, reply: FastifyRep
   try {
     const result = await loginUser(parsedBody.data);
 
-    return reply.code(200).send(result);
+    return reply.code(200).send(await withAccessToken(reply, result));
   } catch {
     return reply.code(401).send({ error: "invalid email or password" });
   }

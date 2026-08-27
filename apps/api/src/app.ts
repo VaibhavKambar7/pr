@@ -1,8 +1,10 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import fastifyJwt from "@fastify/jwt";
 import { prisma } from "@pr/database";
 import { apiKeyRoutes } from "./modules/api-keys/api-key.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { AUTH_TOKEN_EXPIRES_IN, getJwtSecret } from "./modules/auth/auth.service.js";
 import { executionRoutes } from "./modules/executions/execution.routes.js";
 import { projectRoutes } from "./modules/projects/project.routes.js";
 import { promptVersionRoutes } from "./modules/prompt-versions/prompt-version.routes.js";
@@ -19,6 +21,17 @@ export const buildApp = () => {
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
     exposedHeaders: ["Idempotency-Replayed"],
+  });
+
+  void app.register(fastifyJwt, {
+    secret: getJwtSecret(),
+    sign: {
+      expiresIn: AUTH_TOKEN_EXPIRES_IN,
+    },
+    formatUser: (payload) => ({
+      id: payload.sub,
+      email: payload.email,
+    }),
   });
 
   app.get("/health", async () => {
