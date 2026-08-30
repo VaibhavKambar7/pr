@@ -1,3 +1,5 @@
+import { clearAuthSession, getStoredAccessToken, getStoredRefreshToken, storeAuthTokens } from "./auth-session";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 type ApiErrorResponse = {
@@ -13,7 +15,10 @@ export type AuthUser = {
 export type AuthResponse = {
   user: AuthUser;
   accessToken: string;
+  refreshToken: string;
 };
+
+type RefreshSessionResponse = AuthResponse;
 
 type RegisterInput = {
   name: string;
@@ -24,6 +29,10 @@ type RegisterInput = {
 type LoginInput = {
   email: string;
   password: string;
+};
+
+type RefreshSessionInput = {
+  refreshToken: string;
 };
 
 export type Project = {
@@ -232,6 +241,15 @@ function getApiErrorMessage(body: ApiErrorResponse): string {
   return "request failed";
 }
 
+class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
 
@@ -246,7 +264,7 @@ async function request<T>(path: string, init?: RequestInit) {
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorResponse;
-    throw new Error(getApiErrorMessage(body));
+    throw new ApiRequestError(getApiErrorMessage(body), response.status);
   }
 
   if (response.status === 204) {
@@ -254,6 +272,40 @@ async function request<T>(path: string, init?: RequestInit) {
   }
 
   return response.json() as Promise<T>;
+}
+
+async function requestWithAuth<T>(accessToken: string, path: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", `Bearer ${getStoredAccessToken() ?? accessToken}`);
+
+  try {
+    return await request<T>(path, {
+      ...init,
+      headers,
+    });
+  } catch (error) {
+    if (!(error instanceof ApiRequestError) || error.status !== 401) {
+      throw error;
+    }
+
+    const refreshToken = getStoredRefreshToken();
+
+    if (!refreshToken) {
+      clearAuthSession();
+      throw error;
+    }
+
+    const refreshedSession = await refreshSession(refreshToken);
+    storeAuthTokens(refreshedSession);
+
+    const retryHeaders = new Headers(init?.headers);
+    retryHeaders.set("Authorization", `Bearer ${refreshedSession.accessToken}`);
+
+    return request<T>(path, {
+      ...init,
+      headers: retryHeaders,
+    });
+  }
 }
 
 export function register(input: RegisterInput) {
@@ -270,85 +322,67 @@ export function login(input: LoginInput) {
   });
 }
 
-export function getMe(accessToken: string) {
-  return request<{ user: AuthUser }>("/auth/me", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
+export function refreshSession(refreshToken: string) {
+  return request<RefreshSessionResponse>("/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken } satisfies RefreshSessionInput),
   });
+}
+
+export function logoutSession(refreshToken: string) {
+  return request<{ success: true }>("/auth/logout", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken } satisfies RefreshSessionInput),
+  });
+}
+
+export function getMe(accessToken: string) {
+  return requestWithAuth<{ user: AuthUser }>(accessToken, "/auth/me");
 }
 
 export function listProjects(accessToken: string) {
-  return request<{ projects: Project[] }>("/projects", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return requestWithAuth<{ projects: Project[] }>(accessToken, "/projects");
 }
 
 export function createProject(accessToken: string, input: CreateProjectInput) {
-  return request<{ project: Project }>("/projects", {
+  return requestWithAuth<{ project: Project }>(accessToken, "/projects", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     body: JSON.stringify(input),
   });
 }
 
 export function listApiKeys(accessToken: string, projectId: string) {
-  return request<{ apiKeys: ApiKey[] }>(`/projects/${projectId}/api-keys`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return requestWithAuth<{ apiKeys: ApiKey[] }>(accessToken, `/projects/${projectId}/api-keys`);
 }
 
 export function createApiKey(accessToken: string, projectId: string, input: CreateApiKeyInput) {
-  return request<{ apiKey: ApiKey; key: string }>(`/projects/${projectId}/api-keys`, {
+  return requestWithAuth<{ apiKey: ApiKey; key: string }>(accessToken, `/projects/${projectId}/api-keys`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     body: JSON.stringify(input),
   });
 }
 
 export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {
-  return request<void>(`/projects/${projectId}/api-keys/${apiKeyId}`, {
+  return requestWithAuth<void>(accessToken, `/projects/${projectId}/api-keys/${apiKeyId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
   });
 }
 
 export function listPrompts(accessToken: string, projectId: string) {
-  return request<{ prompts: Prompt[] }>(`/projects/${projectId}/prompts`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return requestWithAuth<{ prompts: Prompt[] }>(accessToken, `/projects/${projectId}/prompts`);
 }
 
 export function createPrompt(accessToken: string, projectId: string, input: CreatePromptInput) {
-  return request<{ prompt: Prompt }>(`/projects/${projectId}/prompts`, {
+  return requestWithAuth<{ prompt: Prompt }>(accessToken, `/projects/${projectId}/prompts`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     body: JSON.stringify(input),
   });
 }
 
 export function listPromptVersions(accessToken: string, projectId: string, promptId: string) {
-  return request<{ promptVersions: PromptVersion[] }>(
+  return requestWithAuth<{ promptVersions: PromptVersion[] }>(
+    accessToken,
     `/projects/${projectId}/prompts/${promptId}/versions`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
   );
 }
 
@@ -359,10 +393,9 @@ export function createPromptVersion(
   input: CreatePromptVersionInput,
   idempotencyKey: string,
 ) {
-  return request<{ promptVersion: PromptVersion }>(`/projects/${projectId}/prompts/${promptId}/versions`, {
+  return requestWithAuth<{ promptVersion: PromptVersion }>(accessToken, `/projects/${projectId}/prompts/${promptId}/versions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify(input),
@@ -376,13 +409,11 @@ export function promotePromptVersion(
   version: number,
   expectedLiveVersion: number | null,
 ) {
-  return request<{ promptVersion: PromptVersion }>(
+  return requestWithAuth<{ promptVersion: PromptVersion }>(
+    accessToken,
     `/projects/${projectId}/prompts/${promptId}/versions/${version}/promote`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ expectedLiveVersion }),
     },
   );
@@ -395,13 +426,11 @@ export function rollbackPromptVersion(
   version: number,
   expectedLiveVersion: number | null,
 ) {
-  return request<{ promptVersion: PromptVersion }>(
+  return requestWithAuth<{ promptVersion: PromptVersion }>(
+    accessToken,
     `/projects/${projectId}/prompts/${promptId}/versions/${version}/rollback`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ expectedLiveVersion }),
     },
   );
@@ -413,11 +442,8 @@ export function renderLivePrompt(
   promptId: string,
   input: RenderLivePromptInput,
 ) {
-  return request<RuntimeRenderResult>(`/runtime/projects/${projectId}/prompts/${promptId}/render`, {
+  return requestWithAuth<RuntimeRenderResult>(accessToken, `/runtime/projects/${projectId}/prompts/${promptId}/render`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
     body: JSON.stringify(input),
   });
 }
@@ -425,19 +451,11 @@ export function renderLivePrompt(
 export function listExecutions(accessToken: string, projectId: string, promptId?: string) {
   const query = promptId ? `?promptId=${encodeURIComponent(promptId)}` : "";
 
-  return request<{ executions: ExecutionListItem[] }>(`/projects/${projectId}/executions${query}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return requestWithAuth<{ executions: ExecutionListItem[] }>(accessToken, `/projects/${projectId}/executions${query}`);
 }
 
 export function getExecution(accessToken: string, projectId: string, executionId: string) {
-  return request<{ execution: ExecutionDetail }>(`/projects/${projectId}/executions/${executionId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return requestWithAuth<{ execution: ExecutionDetail }>(accessToken, `/projects/${projectId}/executions/${executionId}`);
 }
 
 export function setVersionTag(
@@ -447,13 +465,11 @@ export function setVersionTag(
   version: number,
   tag: string,
 ) {
-  return request<{ tag: PromptVersionTag }>(
+  return requestWithAuth<{ tag: PromptVersionTag }>(
+    accessToken,
     `/projects/${projectId}/prompts/${promptId}/versions/${version}/tag`,
     {
       method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
       body: JSON.stringify({ tag }),
     },
   );
@@ -465,21 +481,14 @@ export function removeVersionTag(
   promptId: string,
   tag: string,
 ) {
-  return request<void>(`/projects/${projectId}/prompts/${promptId}/tags/${tag}`, {
+  return requestWithAuth<void>(accessToken, `/projects/${projectId}/prompts/${promptId}/tags/${tag}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
   });
 }
 
 export function listPromptTags(accessToken: string, projectId: string, promptId: string) {
-  return request<{ tags: PromptVersionTag[] }>(
+  return requestWithAuth<{ tags: PromptVersionTag[] }>(
+    accessToken,
     `/projects/${projectId}/prompts/${promptId}/tags`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
   );
 }

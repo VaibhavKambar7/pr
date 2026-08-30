@@ -6,8 +6,13 @@ import { AuthHero } from "@/features/auth/AuthHero";
 import { AuthPanel } from "@/features/auth/AuthPanel";
 import { RouteLoading } from "@/features/navigation/RouteLoading";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
-import { getMe, type AuthResponse } from "@/lib/api";
-import { clearAuthSession, getStoredAccessToken, storeAuthSession } from "@/lib/auth-session";
+import { getMe, refreshSession, type AuthResponse } from "@/lib/api";
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  storeAuthSession,
+} from "@/lib/auth-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,20 +20,30 @@ export default function LoginPage() {
 
   useEffect(() => {
     const token = getStoredAccessToken();
+    const refreshToken = getStoredRefreshToken();
 
-    if (!token) {
+    if (!token && !refreshToken) {
       setIsCheckingSession(false);
       return;
     }
 
-    void getMe(token)
-      .then(() => {
+    async function checkSession() {
+      try {
+        if (token) {
+          await getMe(token);
+        } else if (refreshToken) {
+          const refreshedSession = await refreshSession(refreshToken);
+          storeAuthSession(refreshedSession);
+        }
+
         router.replace("/dashboard");
-      })
-      .catch(() => {
+      } catch {
         clearAuthSession();
         setIsCheckingSession(false);
-      });
+      }
+    }
+
+    void checkSession();
   }, [router]);
 
   function handleAuthenticated(result: AuthResponse) {

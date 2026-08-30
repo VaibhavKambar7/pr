@@ -3,13 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RouteLoading } from "@/features/navigation/RouteLoading";
-import { getStoredAccessToken } from "@/lib/auth-session";
+import { getStoredAccessToken, getStoredRefreshToken } from "@/lib/auth-session";
 
 export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace(getStoredAccessToken() ? "/dashboard" : "/login");
+    router.replace(getStoredAccessToken() || getStoredRefreshToken() ? "/dashboard" : "/login");
   }, [router]);
 
   return (

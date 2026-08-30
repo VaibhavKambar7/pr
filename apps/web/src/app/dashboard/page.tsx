@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConsoleApp } from "@/features/console/ConsoleApp";
 import { RouteLoading } from "@/features/navigation/RouteLoading";
-import { getMe, type AuthUser } from "@/lib/api";
-import { clearAuthSession, getStoredAccessToken } from "@/lib/auth-session";
+import { getMe, logoutSession, refreshSession, type AuthUser } from "@/lib/api";
+import {
+  clearAuthSession,
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  storeAuthSession,
+} from "@/lib/auth-session";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -15,25 +20,46 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = getStoredAccessToken();
+    const refreshToken = getStoredRefreshToken();
 
-    if (!token) {
+    if (!token && !refreshToken) {
       router.replace("/login");
       return;
     }
 
-    setAccessToken(token);
-    void getMe(token)
-      .then(({ user: currentUser }) => {
-        setUser(currentUser);
-      })
-      .catch(() => {
+    async function loadSession() {
+      try {
+        if (token) {
+          setAccessToken(token);
+          const { user: currentUser } = await getMe(token);
+          setUser(currentUser);
+          return;
+        }
+
+        if (refreshToken) {
+          const refreshedSession = await refreshSession(refreshToken);
+          storeAuthSession(refreshedSession);
+          setAccessToken(refreshedSession.accessToken);
+          setUser(refreshedSession.user);
+        }
+      } catch {
         clearAuthSession();
         router.replace("/login");
-      });
+      }
+    }
+
+    void loadSession();
   }, [router]);
 
-  function handleLogout() {
+  async function handleLogout() {
     setIsLoggingOut(true);
+
+    const refreshToken = getStoredRefreshToken();
+
+    if (refreshToken) {
+      await logoutSession(refreshToken).catch(() => undefined);
+    }
+
     clearAuthSession();
     router.replace("/login");
   }
