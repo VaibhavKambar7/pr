@@ -1,19 +1,27 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getAuthenticatedUser, loginUser, registerUser } from "./auth.service.js";
+import {
+  createRefreshSession,
+  getAuthenticatedUser,
+  loginUser,
+  registerUser,
+} from "./auth.service.js";
 import { loginSchema, registerSchema } from "./auth.schema.js";
 import "./auth.types.js";
 
 type AuthResult = Awaited<ReturnType<typeof registerUser>>;
 
-async function withAccessToken(reply: FastifyReply, result: AuthResult) {
+async function withSessionToken(reply: FastifyReply, result: AuthResult) {
   const accessToken = await reply.jwtSign({
     sub: result.user.id,
     email: result.user.email,
   });
 
+  const refreshToken = await createRefreshSession(result.user.id);
+
   return {
     ...result,
     accessToken,
+    refreshToken,
   };
 }
 
@@ -30,7 +38,7 @@ export async function registerController(request: FastifyRequest, reply: Fastify
   try {
     const result = await registerUser(parsedBody.data);
 
-    return reply.code(201).send(await withAccessToken(reply, result));
+    return reply.code(201).send(await withSessionToken(reply, result));
   } catch (error) {
     const message = error instanceof Error ? error.message : "registration failed";
     const statusCode = message === "user already exists" ? 409 : 500;
@@ -52,7 +60,7 @@ export async function loginController(request: FastifyRequest, reply: FastifyRep
   try {
     const result = await loginUser(parsedBody.data);
 
-    return reply.code(200).send(await withAccessToken(reply, result));
+    return reply.code(200).send(await withSessionToken(reply, result));
   } catch {
     return reply.code(401).send({ error: "invalid email or password" });
   }

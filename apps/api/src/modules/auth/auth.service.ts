@@ -1,5 +1,11 @@
 import bcrypt from "bcrypt";
 import {
+  type LoginInput,
+  type LogoutSessionInput,
+  type RefreshSessionInput,
+  type RegisterInput,
+} from "./auth.schema.js";
+import {
   createRefreshToken,
   findRefreshTokenByHash,
   generateRefreshToken,
@@ -7,7 +13,6 @@ import {
   revokeRefreshToken,
 } from "./auth.refresh-token.repository.js";
 import { createUser, findUserByEmail, findUserById } from "./auth.repository.js";
-import type { LoginInput, RegisterInput } from "./auth.schema.js";
 
 const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_TTL_DAYS = 7;
@@ -41,7 +46,7 @@ export async function createRefreshSession(userId: string) {
   return refreshToken;
 }
 
-export async function refreshAuthSession(refreshToken: string) {
+export async function refreshAuthSession(refreshToken: RefreshSessionInput) {
   const tokenHash = hashRefreshToken(refreshToken);
   const tokenRecord = await findRefreshTokenByHash(tokenHash);
 
@@ -61,7 +66,7 @@ export async function refreshAuthSession(refreshToken: string) {
   };
 }
 
-export async function logoutAuthSession(refreshToken: string) {
+export async function logoutAuthSession(refreshToken: LogoutSessionInput) {
   const tokenHash = hashRefreshToken(refreshToken);
   const tokenRecord = await findRefreshTokenByHash(tokenHash);
 
