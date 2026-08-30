@@ -66,8 +66,8 @@ export async function refreshAuthSession(input: RefreshSessionInput) {
   };
 }
 
-export async function logoutAuthSession(refreshToken: LogoutSessionInput) {
-  const tokenHash = hashRefreshToken(refreshToken);
+export async function logoutAuthSession(input: LogoutSessionInput) {
+  const tokenHash = hashRefreshToken(input.refreshToken);
   const tokenRecord = await findRefreshTokenByHash(tokenHash);
 
   if (tokenRecord && !tokenRecord.revokedAt) {

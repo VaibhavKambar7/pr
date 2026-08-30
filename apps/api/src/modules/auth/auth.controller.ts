@@ -3,10 +3,11 @@ import {
   createRefreshSession,
   getAuthenticatedUser,
   loginUser,
+  logoutAuthSession,
   refreshAuthSession,
   registerUser,
 } from "./auth.service.js";
-import { loginSchema, refreshSessionSchema, registerSchema } from "./auth.schema.js";
+import { loginSchema, logoutSessionSchema, refreshSessionSchema, registerSchema } from "./auth.schema.js";
 import "./auth.types.js";
 
 type AuthResult = Awaited<ReturnType<typeof registerUser>>;
@@ -82,35 +83,45 @@ export async function meController(request: FastifyRequest, reply: FastifyReply)
 }
 
 export async function refreshController(request: FastifyRequest, reply: FastifyReply) {
-  const parsedBody = refreshSessionSchema.safeParse(request.body)
+  const parsedBody = refreshSessionSchema.safeParse(request.body);
 
-    if (!parsedBody.success) {
+  if (!parsedBody.success) {
     return reply.code(400).send({
       error: "invalid request body",
     });
   }
 
   try {
-    
-    
-    const result = await refreshAuthSession(parsedBody.data)
-    
+    const result = await refreshAuthSession(parsedBody.data);
+
     const accessToken = await reply.jwtSign({
       sub: result.user.id,
-      email: result.user.email
-    })
+      email: result.user.email,
+    });
 
     return reply.code(200).send({
-  user: result.user,
-  accessToken,
-  refreshToken: result.refreshToken,
-});
-    
+      user: result.user,
+      accessToken,
+      refreshToken: result.refreshToken,
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "registration failed";
-    const statusCode = message === "invalid refresh token" ? 409 : 500;
+    const message = error instanceof Error ? error.message : "refresh failed";
+    const statusCode = message === "invalid refresh token" ? 401 : 500;
 
     return reply.code(statusCode).send({ error: message });
   }
 }
 
+export async function logoutController(request: FastifyRequest, reply: FastifyReply) {
+  const parsedBody = logoutSessionSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+    });
+  }
+
+  await logoutAuthSession(parsedBody.data);
+
+  return reply.code(200).send({ success: true });
+}

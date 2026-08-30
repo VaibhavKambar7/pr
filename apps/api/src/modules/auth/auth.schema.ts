@@ -17,11 +17,13 @@ export const loginSchema = z
 
 export const refreshSessionSchema = z.object({
   refreshToken: z.string().min(20),
-}).strict()
-export const logoutSessionSchema = z.string().min(20)
+}).strict();
+
+export const logoutSessionSchema = z.object({
+  refreshToken: z.string().min(20),
+}).strict();
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
-export type RefreshSessionInput = z.infer<typeof refreshSessionSchema>
-export type LogoutSessionInput = z.infer<typeof logoutSessionSchema>
-
+export type RefreshSessionInput = z.infer<typeof refreshSessionSchema>;
+export type LogoutSessionInput = z.infer<typeof logoutSessionSchema>;
