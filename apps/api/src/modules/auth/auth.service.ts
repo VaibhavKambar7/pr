@@ -46,8 +46,8 @@ export async function createRefreshSession(userId: string) {
   return refreshToken;
 }
 
-export async function refreshAuthSession(refreshToken: RefreshSessionInput) {
-  const tokenHash = hashRefreshToken(refreshToken);
+export async function refreshAuthSession(input: RefreshSessionInput) {
+  const tokenHash = hashRefreshToken(input.refreshToken);
   const tokenRecord = await findRefreshTokenByHash(tokenHash);
 
   if (!tokenRecord || tokenRecord.revokedAt || tokenRecord.expiresAt <= new Date()) {

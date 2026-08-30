@@ -3,9 +3,10 @@ import {
   createRefreshSession,
   getAuthenticatedUser,
   loginUser,
+  refreshAuthSession,
   registerUser,
 } from "./auth.service.js";
-import { loginSchema, registerSchema } from "./auth.schema.js";
+import { loginSchema, refreshSessionSchema, registerSchema } from "./auth.schema.js";
 import "./auth.types.js";
 
 type AuthResult = Awaited<ReturnType<typeof registerUser>>;
@@ -79,3 +80,37 @@ export async function meController(request: FastifyRequest, reply: FastifyReply)
 
   return reply.code(200).send({ user });
 }
+
+export async function refreshController(request: FastifyRequest, reply: FastifyReply) {
+  const parsedBody = refreshSessionSchema.safeParse(request.body)
+
+    if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: "invalid request body",
+    });
+  }
+
+  try {
+    
+    
+    const result = await refreshAuthSession(parsedBody.data)
+    
+    const accessToken = await reply.jwtSign({
+      sub: result.user.id,
+      email: result.user.email
+    })
+
+    return reply.code(200).send({
+  user: result.user,
+  accessToken,
+  refreshToken: result.refreshToken,
+});
+    
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "registration failed";
+    const statusCode = message === "invalid refresh token" ? 409 : 500;
+
+    return reply.code(statusCode).send({ error: message });
+  }
+}
+
