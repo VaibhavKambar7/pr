@@ -20,7 +20,6 @@ export async function createRefreshToken(input: CreateRefreshTokenInput) {
     data: {
       userId: input.userId,
       tokenHash: input.tokenHash,
-      hash: input.tokenHash,
       expiresAt: input.expiresAt,
       createdAt: new Date(),
     },
@@ -46,6 +45,40 @@ export async function revokeRefreshToken(id: string) {
     data: {
       revokedAt: new Date(),
     },
+  });
+}
+
+export async function rotateRefreshToken(input: {
+  oldTokenHash: string;
+  newTokenHash: string;
+  expiresAt: Date;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.refreshToken.findUnique({
+      where: { tokenHash: input.oldTokenHash },
+    });
+
+    if (!existing || existing.revokedAt || existing.expiresAt <= new Date()) {
+      return null;
+    }
+
+    const revoked = await tx.refreshToken.updateMany({
+      where: { id: existing.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    if (revoked.count === 0) {
+      return null;
+    }
+
+    return tx.refreshToken.create({
+      data: {
+        userId: existing.userId,
+        tokenHash: input.newTokenHash,
+        expiresAt: input.expiresAt,
+        createdAt: new Date(),
+      },
+    });
   });
 }
 

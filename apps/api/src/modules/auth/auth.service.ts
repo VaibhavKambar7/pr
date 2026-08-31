@@ -11,6 +11,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
   revokeRefreshToken,
+  rotateRefreshToken,
 } from "./auth.refresh-token.repository.js";
 import { createUser, findUserByEmail, findUserById } from "./auth.repository.js";
 
@@ -48,21 +49,31 @@ export async function createRefreshSession(userId: string) {
 
 export async function refreshAuthSession(input: RefreshSessionInput) {
   const tokenHash = hashRefreshToken(input.refreshToken);
-  const tokenRecord = await findRefreshTokenByHash(tokenHash);
+  const nextToken = generateRefreshToken();
 
-  if (!tokenRecord || tokenRecord.revokedAt || tokenRecord.expiresAt <= new Date()) {
+  const tokenRecord = await rotateRefreshToken({
+    oldTokenHash: tokenHash,
+    newTokenHash: hashRefreshToken(nextToken),
+    expiresAt: getRefreshTokenExpiresAt(),
+  });
+
+  if (!tokenRecord) {
     throw new Error("invalid refresh token");
   }
 
-  await revokeRefreshToken(tokenRecord.id);
+  const user = await findUserById(tokenRecord.userId);
+
+  if (!user) {
+    throw new Error("invalid refresh token");
+  }
 
   return {
     user: {
-      id: tokenRecord.user.id,
-      email: tokenRecord.user.email,
-      name: tokenRecord.user.name,
+      id: user.id,
+      email: user.email,
+      name: user.name,
     },
-    refreshToken: await createRefreshSession(tokenRecord.userId),
+    refreshToken: nextToken,
   };
 }
 
