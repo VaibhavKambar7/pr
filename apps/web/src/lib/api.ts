@@ -274,6 +274,40 @@ async function request<T>(path: string, init?: RequestInit) {
   return response.json() as Promise<T>;
 }
 
+let refreshPromise: Promise<RefreshSessionResponse> | null = null;
+
+function refreshStoredSession() {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = getStoredRefreshToken();
+
+  if (!refreshToken) {
+    clearAuthSession();
+    return Promise.reject(new Error("refresh token is unavailable"));
+  }
+
+  const currentRefresh = refreshSession(refreshToken)
+    .then((session) => {
+      storeAuthTokens(session);
+      return session;
+    })
+    .catch((error) => {
+      clearAuthSession();
+      throw error;
+    })
+    .finally(() => {
+      if (refreshPromise === currentRefresh) {
+        refreshPromise = null;
+      }
+    });
+
+  refreshPromise = currentRefresh;
+
+  return currentRefresh;
+}
+
 async function requestWithAuth<T>(accessToken: string, path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
   headers.set("Authorization", `Bearer ${getStoredAccessToken() ?? accessToken}`);
@@ -288,15 +322,7 @@ async function requestWithAuth<T>(accessToken: string, path: string, init?: Requ
       throw error;
     }
 
-    const refreshToken = getStoredRefreshToken();
-
-    if (!refreshToken) {
-      clearAuthSession();
-      throw error;
-    }
-
-    const refreshedSession = await refreshSession(refreshToken);
-    storeAuthTokens(refreshedSession);
+    const refreshedSession = await refreshStoredSession();
 
     const retryHeaders = new Headers(init?.headers);
     retryHeaders.set("Authorization", `Bearer ${refreshedSession.accessToken}`);
