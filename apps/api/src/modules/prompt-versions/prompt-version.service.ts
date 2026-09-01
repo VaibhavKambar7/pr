@@ -91,7 +91,9 @@ export async function createVersionForPrompt(
   };
 
   return createPromptVersion(
+    ownerId,
     promptId,
+    projectId,
     inputWithVariableSchema,
     idempotencyKey,
     hashCreateVersionRequest(inputWithVariableSchema),

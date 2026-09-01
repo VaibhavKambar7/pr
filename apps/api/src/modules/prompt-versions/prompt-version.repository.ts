@@ -1,4 +1,4 @@
-import { PromptVersionStatus, prisma, type Prisma } from "@pr/database";
+import { PromptVersionStatus,AuditAction, prisma, type Prisma } from "@pr/database";
 import type { CreatePromptVersionInput, SetLivePromptVersionInput } from "./prompt-version.schema.js";
 
 export class IdempotencyKeyConflictError extends Error {
@@ -39,7 +39,9 @@ async function lockPromptVersionLifecycle(tx: Prisma.TransactionClient, promptId
 }
 
 export async function createPromptVersion(
+  ownerId: string,
   promptId: string,
+  projectId: string,
   input: CreatePromptVersionInput,
   idempotencyKey?: string,
   requestHash?: string,
@@ -92,6 +94,22 @@ export async function createPromptVersion(
         changeNotes: input.changeNotes ?? null,
       },
     });
+
+    await tx.auditEvent.create({
+      data:{
+        projectId,
+        actorId: ownerId,
+        action: AuditAction.PROMPT_VERSION_CREATED,
+        entityType: "promptVersion",
+        entityId: created.id,
+        before: {
+          liveVersion: latestVersion,
+        },
+        after:{
+          liveVersion: created.version
+        }
+      }
+    })
 
     return {
       promptVersion: toPublicPromptVersion(created),
