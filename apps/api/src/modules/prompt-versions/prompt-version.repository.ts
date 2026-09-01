@@ -1,4 +1,4 @@
-import { PromptVersionStatus,AuditAction, prisma, type Prisma } from "@pr/database";
+import { AuditAction, PromptVersionStatus, prisma, type Prisma } from "@pr/database";
 import type { CreatePromptVersionInput, SetLivePromptVersionInput } from "./prompt-version.schema.js";
 
 export class IdempotencyKeyConflictError extends Error {
@@ -22,7 +22,7 @@ type PromptVersionIdentity = {
   version: number;
 };
 
-function toPublicPromptVersion({ // remove internal fields before sending back to client
+function toPublicPromptVersion({
   idempotencyKey: _idempotencyKey,
   requestHash: _requestHash,
   ...promptVersion
@@ -36,6 +36,38 @@ function toPublicPromptVersion({ // remove internal fields before sending back t
 
 async function lockPromptVersionLifecycle(tx: Prisma.TransactionClient, promptId: string) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${promptId}, 0))`;
+}
+
+async function createPromptVersionAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: {
+    projectId: string;
+    actorId: string;
+    action: AuditAction;
+    entityId: string;
+    beforeLiveVersion: number | null;
+    beforeLiveVersionId: string | null;
+    afterLiveVersion: number | null;
+    afterLiveVersionId: string | null;
+  },
+) {
+  await tx.auditEvent.create({
+    data: {
+      projectId: input.projectId,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: "prompt_version",
+      entityId: input.entityId,
+      before: {
+        liveVersion: input.beforeLiveVersion,
+        liveVersionId: input.beforeLiveVersionId,
+      },
+      after: {
+        liveVersion: input.afterLiveVersion,
+        liveVersionId: input.afterLiveVersionId,
+      },
+    },
+  });
 }
 
 export async function createPromptVersion(
@@ -95,21 +127,16 @@ export async function createPromptVersion(
       },
     });
 
-    await tx.auditEvent.create({
-      data:{
-        projectId,
-        actorId: ownerId,
-        action: AuditAction.PROMPT_VERSION_CREATED,
-        entityType: "promptVersion",
-        entityId: created.id,
-        before: {
-          liveVersion: latestVersion,
-        },
-        after:{
-          liveVersion: created.version
-        }
-      }
-    })
+    await createPromptVersionAuditEvent(tx, {
+      projectId,
+      actorId: ownerId,
+      action: AuditAction.PROMPT_VERSION_CREATED,
+      entityId: created.id,
+      beforeLiveVersion: null,
+      beforeLiveVersionId: null,
+      afterLiveVersion: created.version,
+      afterLiveVersionId: created.id,
+    });
 
     return {
       promptVersion: toPublicPromptVersion(created),
@@ -149,7 +176,7 @@ export async function promotePromptVersion(
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
   projectId: string,
   ownerId: string,
-  auditAction: AuditAction
+  auditAction: AuditAction,
 ) {
   return prisma.$transaction(async (tx) => {
     await lockPromptVersionLifecycle(tx, input.promptId);
@@ -164,6 +191,17 @@ export async function promotePromptVersion(
     const actualLiveVersion = currentLiveVersion?.version ?? null;
 
     if (actualLiveVersion === input.version) {
+      await createPromptVersionAuditEvent(tx, {
+        projectId,
+        actorId: ownerId,
+        action: auditAction,
+        entityId: currentLiveVersion!.id,
+        beforeLiveVersion: actualLiveVersion,
+        beforeLiveVersionId: currentLiveVersion!.id,
+        afterLiveVersion: actualLiveVersion,
+        afterLiveVersionId: currentLiveVersion!.id,
+      });
+
       return toPublicPromptVersion(currentLiveVersion!);
     }
 
@@ -196,21 +234,16 @@ export async function promotePromptVersion(
       },
     });
 
-    await tx.auditEvent.create({
-      data:{
-        projectId,
-        actorId: ownerId,
-        action: auditAction,
-        entityType: "promptVersion",
-        entityId: promoted.id,
-        before: {
-          liveVersion: actualLiveVersion,
-        },
-        after:{
-          liveVersion: promoted.version
-        }
-      }
-    })
+    await createPromptVersionAuditEvent(tx, {
+      projectId,
+      actorId: ownerId,
+      action: auditAction,
+      entityId: promoted.id,
+      beforeLiveVersion: actualLiveVersion,
+      beforeLiveVersionId: currentLiveVersion?.id ?? null,
+      afterLiveVersion: promoted.version,
+      afterLiveVersionId: promoted.id,
+    });
 
     return toPublicPromptVersion(promoted);
   });
