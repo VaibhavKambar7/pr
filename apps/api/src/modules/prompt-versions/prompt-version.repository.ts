@@ -22,7 +22,7 @@ type PromptVersionIdentity = {
   version: number;
 };
 
-function toPublicPromptVersion({
+function toPublicPromptVersion({ // remove internal fields before sending back to client
   idempotencyKey: _idempotencyKey,
   requestHash: _requestHash,
   ...promptVersion
@@ -147,6 +147,9 @@ export async function findPromptVersion(input: PromptVersionIdentity) {
 export async function promotePromptVersion(
   input: PromptVersionIdentity,
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
+  projectId: string,
+  ownerId: string,
+  auditAction: AuditAction
 ) {
   return prisma.$transaction(async (tx) => {
     await lockPromptVersionLifecycle(tx, input.promptId);
@@ -192,6 +195,22 @@ export async function promotePromptVersion(
         archivedAt: null,
       },
     });
+
+    await tx.auditEvent.create({
+      data:{
+        projectId,
+        actorId: ownerId,
+        action: auditAction,
+        entityType: "promptVersion",
+        entityId: promoted.id,
+        before: {
+          liveVersion: actualLiveVersion,
+        },
+        after:{
+          liveVersion: promoted.version
+        }
+      }
+    })
 
     return toPublicPromptVersion(promoted);
   });

@@ -18,6 +18,7 @@ import {
   upsertTag,
 } from "./prompt-version.repository.js";
 import type { CreatePromptVersionInput, SetLivePromptVersionInput, SetVersionTagInput } from "./prompt-version.schema.js";
+import { AuditAction } from "@pr/database";
 
 export {
   IdempotencyKeyConflictError,
@@ -133,6 +134,7 @@ async function setLiveVersionForPrompt(
   promptId: string,
   versionParam: string,
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
+  auditAction: AuditAction
 ) {
   await getPromptForProject(ownerId, projectId, promptId);
 
@@ -146,7 +148,7 @@ async function setLiveVersionForPrompt(
     throw new PromptVersionNotFoundError();
   }
 
-  return promotePromptVersion({ promptId, version }, expectedLiveVersion);
+  return promotePromptVersion({ promptId, version }, expectedLiveVersion, projectId, ownerId, auditAction);
 }
 
 export async function promoteVersionForPrompt(
@@ -156,7 +158,7 @@ export async function promoteVersionForPrompt(
   versionParam: string,
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
-  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion);
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion,  AuditAction.PROMPT_VERSION_PROMOTED);
 }
 
 export async function rollbackVersionForPrompt(
@@ -166,7 +168,7 @@ export async function rollbackVersionForPrompt(
   versionParam: string,
   expectedLiveVersion: SetLivePromptVersionInput["expectedLiveVersion"],
 ) {
-  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion);
+  return setLiveVersionForPrompt(ownerId, projectId, promptId, versionParam, expectedLiveVersion, AuditAction.PROMPT_VERSION_ROLLED_BACK );
 }
 
 export async function setTagForPromptVersion(
