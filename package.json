@@ -14,6 +14,7 @@
     "build:api": "npm run build --workspace api",
     "build:sdk": "npm run build --workspace @pr/sdk",
     "build:web": "npm run build --workspace web",
+    "format:prisma": "prisma format --schema=packages/database/prisma/schema.prisma",
     "typecheck": "npm run typecheck --workspace api && npm run typecheck --workspace web",
     "typecheck:api": "npm run typecheck --workspace api",
     "typecheck:sdk": "npm run typecheck --workspace @pr/sdk",
