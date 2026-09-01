@@ -161,3 +161,36 @@ model Execution {
   @@index([apiKeyId])
   @@index([userId])
 }
+
+enum AuditAction {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROMPT_CREATED
+  PROMPT_UPDATED
+  PROMPT_VERSION_CREATED
+  PROMPT_VERSION_PROMOTED
+  PROMPT_VERSION_ROLLED_BACK
+  PROMPT_TAG_SET
+  PROMPT_TAG_REMOVED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+}
+
+model AuditEvent {
+  id          String      @id @default(cuid())
+  projectId   String
+  actorId     String?
+  action      AuditAction
+  entityType  String
+  entityId    String
+  before      Json?
+  after       Json?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([entityType, entityId, createdAt])
+}
