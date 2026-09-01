@@ -13,6 +13,20 @@ enum PromptVersionStatus {
   ARCHIVED
 }
 
+enum AuditAction {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROMPT_CREATED
+  PROMPT_UPDATED
+  PROMPT_VERSION_CREATED
+  PROMPT_VERSION_PROMOTED
+  PROMPT_VERSION_ROLLED_BACK
+  PROMPT_TAG_SET
+  PROMPT_TAG_REMOVED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+}
+
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
@@ -22,6 +36,7 @@ model User {
   apiKeys       ApiKey[]
   executions    Execution[]
   refreshTokens RefreshToken[]
+  auditEvents   AuditEvent[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -41,17 +56,18 @@ model RefreshToken {
 }
 
 model Project {
-  id          String      @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   slug        String
   description String?
   ownerId     String
-  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   prompts     Prompt[]
   apiKeys     ApiKey[]
   executions  Execution[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  auditEvents AuditEvent[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@unique([ownerId, slug])
   @@index([ownerId])
@@ -162,34 +178,20 @@ model Execution {
   @@index([userId])
 }
 
-enum AuditAction {
-  PROJECT_CREATED
-  PROJECT_UPDATED
-  PROMPT_CREATED
-  PROMPT_UPDATED
-  PROMPT_VERSION_CREATED
-  PROMPT_VERSION_PROMOTED
-  PROMPT_VERSION_ROLLED_BACK
-  PROMPT_TAG_SET
-  PROMPT_TAG_REMOVED
-  API_KEY_CREATED
-  API_KEY_REVOKED
-}
-
 model AuditEvent {
-  id          String      @id @default(cuid())
-  projectId   String
-  actorId     String?
-  action      AuditAction
-  entityType  String
-  entityId    String
-  before      Json?
-  after       Json?
-  metadata    Json?
-  createdAt   DateTime    @default(now())
+  id         String      @id @default(cuid())
+  projectId  String
+  actorId    String?
+  action     AuditAction
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
   @@index([entityType, entityId, createdAt])
