@@ -58,6 +58,7 @@ export async function createPromptForProject(ownerId: string, projectId: string,
 
   return createPrompt({
     projectId,
+    ownerId,
     name: input.name,
     slug,
     description: input.description,
@@ -105,6 +106,7 @@ export async function updatePromptForProject(
   const result = await updatePrompt({
     id: promptId,
     projectId,
+    ownerId,
     name: input.name,
     slug,
     description: input.description,
@@ -123,6 +125,7 @@ export async function deletePromptForProject(ownerId: string, projectId: string,
   const result = await deletePrompt({
     id: promptId,
     projectId,
+    ownerId,
   });
 
   if (result.count === 0) {
