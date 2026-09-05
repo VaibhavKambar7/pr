@@ -1,7 +1,8 @@
-import { prisma } from "@pr/database";
+import { AuditAction, prisma, type Prisma } from "@pr/database";
 
 type CreateApiKeyRecordInput = {
   projectId: string;
+  ownerId: string;
   createdById: string;
   name: string;
   keyHash: string;
@@ -13,23 +14,69 @@ type ApiKeyIdentity = {
   projectId: string;
 };
 
-export async function createApiKey(input: CreateApiKeyRecordInput) {
-  return prisma.apiKey.create({
+type ApiKeyAuditSnapshot = {
+  name: string;
+  prefix: string;
+  revokedAt?: Date | null;
+};
+
+async function createApiKeyAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: {
+    projectId: string;
+    actorId: string;
+    action: AuditAction;
+    entityId: string;
+    before: ApiKeyAuditSnapshot | null;
+    after: ApiKeyAuditSnapshot | null;
+  },
+) {
+  await tx.auditEvent.create({
     data: {
       projectId: input.projectId,
-      createdById: input.createdById,
-      name: input.name,
-      keyHash: input.keyHash,
-      prefix: input.prefix,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: "api_key",
+      entityId: input.entityId,
+      before: input.before ?? undefined,
+      after: input.after ?? undefined,
     },
-    select: {
-      id: true,
-      name: true,
-      prefix: true,
-      createdAt: true,
-      lastUsedAt: true,
-      revokedAt: true,
-    },
+  });
+}
+
+export async function createApiKey(input: CreateApiKeyRecordInput) {
+  return prisma.$transaction(async (tx) => {
+    const apiKey = await tx.apiKey.create({
+      data: {
+        projectId: input.projectId,
+        createdById: input.createdById,
+        name: input.name,
+        keyHash: input.keyHash,
+        prefix: input.prefix,
+      },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        createdAt: true,
+        lastUsedAt: true,
+        revokedAt: true,
+      },
+    });
+
+    await createApiKeyAuditEvent(tx, {
+      projectId: input.projectId,
+      actorId: input.ownerId,
+      action: AuditAction.API_KEY_CREATED,
+      entityId: apiKey.id,
+      before: null,
+      after: {
+        name: input.name,
+        prefix: input.prefix,
+      },
+    });
+
+    return apiKey;
   });
 }
 

@@ -33,6 +33,7 @@ export async function createApiKeyForProject(ownerId: string, projectId: string,
   const rawKey = generateRawApiKey();
   const apiKey = await createApiKey({
     projectId,
+    ownerId,
     createdById: ownerId,
     name: input.name,
     keyHash: hashApiKey(rawKey),
