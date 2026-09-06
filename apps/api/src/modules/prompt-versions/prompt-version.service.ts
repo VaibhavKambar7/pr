@@ -204,7 +204,7 @@ export async function setTagForPromptVersion(
     throw new PromptVersionNotFoundError();
   }
 
-  return upsertTag(promptId, promptVersion.id as string, input.tag as string);
+  return upsertTag(promptId, promptVersion.id as string, input.tag as string, projectId, ownerId);
 }
 
 export async function removeTagForPrompt(
@@ -221,7 +221,7 @@ export async function removeTagForPrompt(
     throw new TagNotFoundError(tag);
   }
 
-  return deleteTag(promptId, tag);
+  return deleteTag(promptId, tag, projectId, ownerId);
 }
 
 export async function listTagsForPrompt(

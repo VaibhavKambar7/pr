@@ -22,6 +22,11 @@ type PromptVersionIdentity = {
   version: number;
 };
 
+type PromptVersionTagSnapshot = {
+  tag: string;
+  versionId: string;
+};
+
 function toPublicPromptVersion({
   idempotencyKey: _idempotencyKey,
   requestHash: _requestHash,
@@ -66,6 +71,30 @@ async function createPromptVersionAuditEvent(
         liveVersion: input.afterLiveVersion,
         liveVersionId: input.afterLiveVersionId,
       },
+    },
+  });
+}
+
+async function createPromptVersionTagAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: {
+    projectId: string;
+    actorId: string;
+    action: AuditAction;
+    entityId: string;
+    before: PromptVersionTagSnapshot | null;
+    after: PromptVersionTagSnapshot | null;
+  },
+) {
+  await tx.auditEvent.create({
+    data: {
+      projectId: input.projectId,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: "prompt_version_tag",
+      entityId: input.entityId,
+      before: input.before ?? undefined,
+      after: input.after ?? undefined,
     },
   });
 }
@@ -263,7 +292,13 @@ export async function findTagByPromptAndName(promptId: string, tag: string) {
   });
 }
 
-export async function upsertTag(promptId: string, versionId: string, tag: string) {
+export async function upsertTag(
+  promptId: string,
+  versionId: string,
+  tag: string,
+  projectId: string,
+  ownerId: string,
+) {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.promptVersionTag.findUnique({
       where: {
@@ -275,6 +310,21 @@ export async function upsertTag(promptId: string, versionId: string, tag: string
     });
 
     if (existing && existing.versionId === versionId) {
+      await createPromptVersionTagAuditEvent(tx, {
+        projectId,
+        actorId: ownerId,
+        action: AuditAction.PROMPT_TAG_SET,
+        entityId: existing.id,
+        before: {
+          tag: existing.tag,
+          versionId: existing.versionId,
+        },
+        after: {
+          tag: existing.tag,
+          versionId: existing.versionId,
+        },
+      });
+
       return existing;
     }
 
@@ -283,7 +333,7 @@ export async function upsertTag(promptId: string, versionId: string, tag: string
     });
 
     if (existing) {
-      return tx.promptVersionTag.update({
+      const updated = await tx.promptVersionTag.update({
         where: {
           id: existing.id,
         },
@@ -291,39 +341,84 @@ export async function upsertTag(promptId: string, versionId: string, tag: string
           versionId,
         },
       });
+
+      await createPromptVersionTagAuditEvent(tx, {
+        projectId,
+        actorId: ownerId,
+        action: AuditAction.PROMPT_TAG_SET,
+        entityId: updated.id,
+        before: {
+          tag: existing.tag,
+          versionId: existing.versionId,
+        },
+        after: {
+          tag: updated.tag,
+          versionId: updated.versionId,
+        },
+      });
+
+      return updated;
     }
 
-    return tx.promptVersionTag.create({
+    const created = await tx.promptVersionTag.create({
       data: {
         promptId,
         versionId,
         tag,
       },
     });
+
+    await createPromptVersionTagAuditEvent(tx, {
+      projectId,
+      actorId: ownerId,
+      action: AuditAction.PROMPT_TAG_SET,
+      entityId: created.id,
+      before: null,
+      after: {
+        tag: created.tag,
+        versionId: created.versionId,
+      },
+    });
+
+    return created;
   });
 }
 
-export async function deleteTag(promptId: string, tag: string) {
-  const existing = await prisma.promptVersionTag.findUnique({
-    where: {
-      promptId_tag: {
-        promptId,
-        tag,
+export async function deleteTag(promptId: string, tag: string, projectId: string, ownerId: string) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.promptVersionTag.findUnique({
+      where: {
+        promptId_tag: {
+          promptId,
+          tag,
+        },
       },
-    },
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    await tx.promptVersionTag.delete({
+      where: {
+        id: existing.id,
+      },
+    });
+
+    await createPromptVersionTagAuditEvent(tx, {
+      projectId,
+      actorId: ownerId,
+      action: AuditAction.PROMPT_TAG_REMOVED,
+      entityId: existing.id,
+      before: {
+        tag: existing.tag,
+        versionId: existing.versionId,
+      },
+      after: null,
+    });
+
+    return existing;
   });
-
-  if (!existing) {
-    return null;
-  }
-
-  await prisma.promptVersionTag.delete({
-    where: {
-      id: existing.id,
-    },
-  });
-
-  return existing;
 }
 
 export async function listTagsByPrompt(promptId: string) {
