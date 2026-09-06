@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
 import { prisma } from "@pr/database";
+import { auditEventRoutes } from "./modules/audit-events/audit-event.routes.js";
 import { apiKeyRoutes } from "./modules/api-keys/api-key.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { AUTH_TOKEN_EXPIRES_IN, getJwtSecret } from "./modules/auth/auth.service.js";
@@ -53,6 +54,7 @@ export const buildApp = () => {
 
   void app.register(authRoutes, { prefix: "/auth" });
   void app.register(apiKeyRoutes, { prefix: "/projects" });
+  void app.register(auditEventRoutes, { prefix: "/projects" });
   void app.register(executionRoutes, { prefix: "/projects" });
   void app.register(projectRoutes, { prefix: "/projects" });
   void app.register(promptRoutes, { prefix: "/projects" });
