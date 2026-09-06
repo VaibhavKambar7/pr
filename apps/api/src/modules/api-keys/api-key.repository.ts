@@ -12,6 +12,7 @@ type CreateApiKeyRecordInput = {
 type ApiKeyIdentity = {
   id: string;
   projectId: string;
+  ownerId: string;
 };
 
 type ApiKeyAuditSnapshot = {
@@ -100,15 +101,54 @@ export async function listApiKeysByProject(projectId: string) {
 }
 
 export async function revokeApiKey(input: ApiKeyIdentity) {
-  return prisma.apiKey.updateMany({
-    where: {
-      id: input.id,
+  return prisma.$transaction(async (tx) => {
+    const existingApiKey = await tx.apiKey.findFirst({
+      where: {
+        id: input.id,
+        projectId: input.projectId,
+        revokedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        revokedAt: true,
+      },
+    });
+
+    if (!existingApiKey) {
+      return { count: 0 };
+    }
+
+    const revokedApiKey = await tx.apiKey.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        revokedAt: true,
+      },
+    });
+
+    await createApiKeyAuditEvent(tx, {
       projectId: input.projectId,
-      revokedAt: null,
-    },
-    data: {
-      revokedAt: new Date(),
-    },
+      actorId: input.ownerId,
+      action: AuditAction.API_KEY_REVOKED,
+      entityId: revokedApiKey.id,
+      before: existingApiKey,
+      after: {
+        name: revokedApiKey.name,
+        prefix: revokedApiKey.prefix,
+        revokedAt: revokedApiKey.revokedAt,
+      },
+    });
+
+    return { count: 1 };
   });
 }
 

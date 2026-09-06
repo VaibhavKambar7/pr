@@ -58,6 +58,7 @@ export async function revokeApiKeyForProject(ownerId: string, projectId: string,
   const result = await revokeApiKey({
     id: apiKeyId,
     projectId,
+    ownerId,
   });
 
   if (result.count === 0) {
