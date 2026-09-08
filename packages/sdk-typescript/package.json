@@ -1,5 +1,5 @@
 {
-  "name": "@pr/sdk",
+  "name": "@pr/sdk-typescript",
   "version": "0.1.0",
   "private": true,
   "description": "TypeScript SDK for consuming Pr prompts from application code",

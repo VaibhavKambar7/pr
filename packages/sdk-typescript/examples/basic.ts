@@ -1,4 +1,4 @@
-import { PrClient, PrError } from "@pr/sdk";
+import { PrClient, PrError } from "@pr/sdk-typescript";
 
 const client = new PrClient({
   apiKey: requiredEnv("PR_API_KEY"),
