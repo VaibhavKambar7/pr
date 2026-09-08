@@ -47,7 +47,7 @@ npm install
 Create a root `.env` file:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/prompt_registry"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/prompt_registry"
 JWT_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_API_URL="http://localhost:3001"
 ```
