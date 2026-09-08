@@ -195,6 +195,26 @@ export type ExecutionDetail = ExecutionListItem & {
   };
 };
 
+export type AuditEventActor = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
+export type AuditEventListItem = {
+  id: string;
+  projectId: string;
+  actorId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  before: unknown;
+  after: unknown;
+  metadata: unknown;
+  createdAt: string;
+  user: AuditEventActor | null;
+};
+
 export function formatApiError(error: unknown): string {
   if (!(error instanceof Error)) {
     return "request failed";
@@ -478,6 +498,13 @@ export function listExecutions(accessToken: string, projectId: string, promptId?
   const query = promptId ? `?promptId=${encodeURIComponent(promptId)}` : "";
 
   return requestWithAuth<{ executions: ExecutionListItem[] }>(accessToken, `/projects/${projectId}/executions${query}`);
+}
+
+export function listAuditEvents(accessToken: string, projectId: string) {
+  return requestWithAuth<{ auditEvents: AuditEventListItem[] }>(
+    accessToken,
+    `/projects/${projectId}/audit-events`,
+  );
 }
 
 export function getExecution(accessToken: string, projectId: string, executionId: string) {

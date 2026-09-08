@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import type {
+  AuditEventListItem,
   ExecutionDetail,
   ExecutionListItem,
   PromptVersion,
@@ -126,6 +127,100 @@ export function StatusLine({ message }: { message: StatusMessage }) {
     >
       {message.text}
     </p>
+  );
+}
+
+function formatActionLabel(action: string) {
+  return action
+    .toLowerCase()
+    .split("_")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function summarizeAuditChange(event: AuditEventListItem) {
+  const before = event.before as Record<string, unknown> | null;
+  const after = event.after as Record<string, unknown> | null;
+
+  if (event.action.includes("PROMOTED") || event.action.includes("ROLLED_BACK")) {
+    return `live v${before?.liveVersion ?? "none"} -> v${after?.liveVersion ?? "none"}`;
+  }
+
+  if (event.action === "PROMPT_TAG_SET") {
+    return `${after?.tag ?? "tag"} -> ${after?.versionId ? String(after.versionId).slice(0, 8) : "version"}`;
+  }
+
+  if (event.action === "PROMPT_TAG_REMOVED") {
+    return `${before?.tag ?? "tag"} removed`;
+  }
+
+  if (event.action === "API_KEY_REVOKED") {
+    return `${before?.name ?? "api key"} revoked`;
+  }
+
+  if (event.action === "API_KEY_CREATED") {
+    return `${after?.name ?? "api key"} created`;
+  }
+
+  if (after?.name && before?.name && after.name !== before.name) {
+    return `${before.name} -> ${after.name}`;
+  }
+
+  if (after?.name) {
+    return String(after.name);
+  }
+
+  if (before?.name) {
+    return String(before.name);
+  }
+
+  return event.entityId.slice(0, 10);
+}
+
+type ActivityFeedProps = {
+  auditEvents: AuditEventListItem[];
+  isLoading: boolean;
+};
+
+export function ActivityFeed({ auditEvents, isLoading }: ActivityFeedProps) {
+  if (auditEvents.length === 0) {
+    return (
+      <div className="mt-5 grid content-start justify-items-start gap-1.5 rounded-xl border border-dashed p-6">
+        <strong className="text-sm">{isLoading ? "Loading activity..." : "No activity yet"}</strong>
+        <p className="m-0 text-xs leading-relaxed text-muted-foreground">
+          Project changes, prompt updates, version lifecycle events, API keys, and tags will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>time</TableHead>
+            <TableHead>actor</TableHead>
+            <TableHead>action</TableHead>
+            <TableHead>entity</TableHead>
+            <TableHead>summary</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {auditEvents.map((event) => (
+            <TableRow className="font-mono text-xs" key={event.id}>
+              <TableCell>{formatClock(event.createdAt)}</TableCell>
+              <TableCell>{event.user?.name ?? event.user?.email ?? "system"}</TableCell>
+              <TableCell>{formatActionLabel(event.action)}</TableCell>
+              <TableCell>{event.entityType}</TableCell>
+              <TableCell className="max-w-[360px] truncate">
+                {summarizeAuditChange(event)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

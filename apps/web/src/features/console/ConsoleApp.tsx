@@ -15,6 +15,7 @@ import {
   createPromptVersion,
   createProject,
   getExecution,
+  listAuditEvents,
   listApiKeys,
   listExecutions,
   listPrompts,
@@ -28,6 +29,7 @@ import {
   rollbackPromptVersion,
   setVersionTag,
   type ApiKey,
+  type AuditEventListItem,
   type AuthUser,
   type ExecutionDetail,
   type ExecutionListItem,
@@ -42,6 +44,7 @@ import { parseJsonObject, parseTemplateVariables } from "@/lib/json";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import {
+  ActivityFeed,
   ExecutionHistory,
   RuntimePanel,
   TemplateBlock,
@@ -50,12 +53,13 @@ import {
   type StatusMessage,
 } from "./ConsolePanels";
 
-type TabId = "versions" | "runtime" | "history";
+type TabId = "versions" | "runtime" | "history" | "activity";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "versions", label: "Versions" },
   { id: "runtime", label: "Runtime" },
   { id: "history", label: "History" },
+  { id: "activity", label: "Activity" },
 ];
 
 const DEFAULT_MODEL_PARAMS = `{
@@ -176,6 +180,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [executionDetail, setExecutionDetail] = useState<ExecutionDetail | null>(null);
   const [isLoadingExecutions, setIsLoadingExecutions] = useState(false);
   const [isLoadingExecutionDetail, setIsLoadingExecutionDetail] = useState(false);
+
+  const [auditEvents, setAuditEvents] = useState<AuditEventListItem[]>([]);
+  const [isLoadingAuditEvents, setIsLoadingAuditEvents] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabId>("versions");
 
@@ -329,6 +336,28 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       isMounted = false;
     };
   }, [accessToken, selectedProjectId, selectedPromptId]);
+
+  async function loadAuditEvents(projectId: string) {
+    setIsLoadingAuditEvents(true);
+
+    try {
+      const result = await listAuditEvents(accessToken, projectId);
+      setAuditEvents(result.auditEvents);
+    } catch {
+      setAuditEvents([]);
+    } finally {
+      setIsLoadingAuditEvents(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setAuditEvents([]);
+      return;
+    }
+
+    void loadAuditEvents(selectedProjectId);
+  }, [accessToken, selectedProjectId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -545,6 +574,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
 
       setProjects((current) => [result.project, ...current]);
       handleSelectProject(result.project.id);
+      void loadAuditEvents(result.project.id);
       setIsNewProjectOpen(false);
       resetProjectFields();
     } catch (error) {
@@ -587,6 +617,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       setIsPromptComposerOpen(false);
       setActiveTab("versions");
       setIsVersionComposerOpen(true);
+      void loadAuditEvents(selectedProjectId);
       setVersionMessage({
         text: "Prompt created. Write the template and cut your first draft.",
         isError: false,
@@ -702,6 +733,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       );
 
       setPromptVersions((current) => [result.promptVersion, ...current]);
+      void loadAuditEvents(selectedProjectId);
       setVersionTemplate("");
       setVersionChangeNotes("");
       setVersionModel("");
@@ -770,6 +802,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
           return currentVersion;
         }),
       );
+      void loadAuditEvents(selectedProjectId);
       setVersionMessage({
         text: `Version ${result.promptVersion.version} is now live.`,
         isError: false,
@@ -804,6 +837,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
         ),
         result.tag,
       ]);
+      void loadAuditEvents(selectedProjectId);
       setVersionMessage({
         text: `Tag "${tag}" set on v${version.version}.`,
         isError: false,
@@ -837,6 +871,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       await removeVersionTag(accessToken, selectedProjectId, selectedPromptId, tag);
 
       setPromptTags((current) => current.filter((item) => item.tag !== tag));
+      void loadAuditEvents(selectedProjectId);
       setVersionMessage({
         text: `Tag "${tag}" removed.`,
         isError: false,
@@ -874,6 +909,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       const result = await createApiKey(accessToken, selectedProjectId, { name });
 
       setApiKeys((current) => [result.apiKey, ...current]);
+      void loadAuditEvents(selectedProjectId);
       setNewRawApiKey(result.key);
       setApiKeyName("");
       setIsKeyComposerOpen(false);
@@ -901,6 +937,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
             : currentKey,
         ),
       );
+      void loadAuditEvents(selectedProjectId);
     } catch (error) {
       setApiKeyError(errorMessage(error, "Failed to revoke API key"));
     } finally {
@@ -1405,6 +1442,10 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                           <span className="rounded-full bg-secondary px-1.5 font-mono text-[11px] text-muted-foreground">
                             {executions.length}
                           </span>
+                        ) : tab.id === "activity" && auditEvents.length > 0 ? (
+                          <span className="rounded-full bg-secondary px-1.5 font-mono text-[11px] text-muted-foreground">
+                            {auditEvents.length}
+                          </span>
                         ) : null}
                       </TabsTrigger>
                     ))}
@@ -1458,6 +1499,13 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                     }}
                     onSelect={(executionId) => setSelectedExecutionId(executionId)}
                     selectedExecutionId={selectedExecutionId}
+                  />
+                ) : null}
+
+                {activeTab === "activity" ? (
+                  <ActivityFeed
+                    auditEvents={auditEvents}
+                    isLoading={isLoadingAuditEvents}
                   />
                 ) : null}
               </>
