@@ -71,6 +71,8 @@ const DEFAULT_RUNTIME_VARIABLES = `{
   "issue": "a delayed order"
 }`;
 
+const RAW_API_KEY_DISPLAY_MS = 30_000;
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function validateName(value: string, label: string) {
@@ -174,6 +176,18 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     text: "Promote a live version, then render it here.",
     isError: false,
   });
+
+  useEffect(() => {
+    if (!newRawApiKey) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setNewRawApiKey(null);
+    }, RAW_API_KEY_DISPLAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [newRawApiKey]);
 
   const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
@@ -1292,7 +1306,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
               {newRawApiKey ? (
                 <div className="mb-2 grid gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3">
                   <p className="m-0 font-mono text-[11px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    Copy now · shown once
+                    Copy now · shown for 30 seconds
                   </p>
                   <code className="overflow-x-auto whitespace-nowrap rounded-lg bg-foreground p-2.5 font-mono text-xs text-background">
                     {newRawApiKey}
