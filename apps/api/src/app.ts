@@ -13,9 +13,12 @@ import { promptVersionRoutes } from "./modules/prompt-versions/prompt-version.ro
 import { promptRoutes } from "./modules/prompts/prompt.routes.js";
 import { runtimeRoutes } from "./modules/runtime/runtime.routes.js";
 
+const MAX_REQUEST_BODY_BYTES = 256 * 1024;
+
 export const buildApp = () => {
   const app = Fastify({
     logger: true,
+    bodyLimit: MAX_REQUEST_BODY_BYTES,
     requestIdHeader: "x-request-id",
     genReqId: () => randomUUID(),
   });
