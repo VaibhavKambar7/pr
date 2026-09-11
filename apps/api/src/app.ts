@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { randomUUID } from "node:crypto";
 import cors from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
 import { prisma } from "@pr/database";
@@ -15,13 +16,19 @@ import { runtimeRoutes } from "./modules/runtime/runtime.routes.js";
 export const buildApp = () => {
   const app = Fastify({
     logger: true,
+    requestIdHeader: "x-request-id",
+    genReqId: () => randomUUID(),
+  });
+
+  app.addHook("onSend", async (request, reply) => {
+    reply.header("X-Request-Id", request.id);
   });
 
   void app.register(cors, {
     origin: [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
-    exposedHeaders: ["Idempotency-Replayed"],
+    allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Request-Id"],
+    exposedHeaders: ["Idempotency-Replayed", "X-Request-Id"],
   });
 
   void app.register(fastifyJwt, {
