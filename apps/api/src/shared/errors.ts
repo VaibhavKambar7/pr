@@ -33,6 +33,14 @@ function sendStructuredError(
   return reply.code(statusCode).send(body);
 }
 
+export function sendApiKeyAuthError(
+  reply: FastifyReply,
+  code: "API_KEY_MISSING" | "API_KEY_INVALID",
+  message: string,
+) {
+  return sendStructuredError(reply, 401, code, message);
+}
+
 export function sendProjectError(reply: FastifyReply, error: unknown) {
   if (error instanceof ProjectNotFoundError) {
     return sendStructuredError(reply, 404, "PROJECT_NOT_FOUND", error.message);

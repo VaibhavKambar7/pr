@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { sendApiKeyAuthError } from "../../shared/errors.js";
 import { requireApiKey } from "../api-keys/api-key.middleware.js";
 import { requireAuth } from "../auth/auth.middleware.js";
 
@@ -7,7 +8,7 @@ export async function requireRuntimeAuth(request: FastifyRequest, reply: Fastify
   const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
 
   if (!token) {
-    return reply.code(401).send({ error: "missing bearer token" });
+    return sendApiKeyAuthError(reply, "API_KEY_MISSING", "missing API key");
   }
 
   if (token.startsWith("pr_")) {
