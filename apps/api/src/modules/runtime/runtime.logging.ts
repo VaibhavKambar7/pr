@@ -44,8 +44,12 @@ export function logRuntimeFailure(
       operation,
       projectId: request.params.projectId,
       promptId: request.params.promptId,
+      authType: request.apiKey ? "api_key" : "user",
       statusCode,
       errorCode,
+      ...(request.apiKey && errorCode === "RUNTIME_PROJECT_ACCESS_DENIED"
+        ? { failureReason: "project_mismatch" }
+        : {}),
       ...(errorName ? { errorName } : {}),
       latencyMs: Date.now() - startedAt,
     },

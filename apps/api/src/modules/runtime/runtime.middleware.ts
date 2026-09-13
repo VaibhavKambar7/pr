@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendApiKeyAuthError } from "../../shared/errors.js";
-import { requireApiKey } from "../api-keys/api-key.middleware.js";
+import { logApiKeyAuthFailure, requireApiKey } from "../api-keys/api-key.middleware.js";
 import { requireAuth } from "../auth/auth.middleware.js";
 
 export async function requireRuntimeAuth(request: FastifyRequest, reply: FastifyReply) {
@@ -8,6 +8,7 @@ export async function requireRuntimeAuth(request: FastifyRequest, reply: Fastify
   const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
 
   if (!token) {
+    logApiKeyAuthFailure(request, "missing_key");
     return sendApiKeyAuthError(reply, "API_KEY_MISSING", "missing API key");
   }
 
