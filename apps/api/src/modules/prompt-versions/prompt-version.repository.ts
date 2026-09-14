@@ -22,6 +22,12 @@ type PromptVersionIdentity = {
   version: number;
 };
 
+type PlaygroundPromptVersionIdentity = {
+  projectId: string;
+  promptId: string;
+  versionId: string;
+};
+
 type PromptVersionTagSnapshot = {
   tag: string;
   versionId: string;
@@ -193,6 +199,20 @@ export async function findPromptVersion(input: PromptVersionIdentity) {
       promptId_version: {
         promptId: input.promptId,
         version: input.version,
+      },
+    },
+  });
+
+  return version ? toPublicPromptVersion(version) : null;
+}
+
+export async function findPromptVersionForPlayground(input: PlaygroundPromptVersionIdentity) {
+  const version = await prisma.promptVersion.findFirst({
+    where: {
+      id: input.versionId,
+      promptId: input.promptId,
+      prompt: {
+        projectId: input.projectId,
       },
     },
   });
