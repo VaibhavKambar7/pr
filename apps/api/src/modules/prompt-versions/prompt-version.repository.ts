@@ -22,7 +22,7 @@ type PromptVersionIdentity = {
   version: number;
 };
 
-type PlaygroundPromptVersionIdentity = {
+type PreviewPromptVersionIdentity = {
   projectId: string;
   promptId: string;
   versionId: string;
@@ -206,7 +206,7 @@ export async function findPromptVersion(input: PromptVersionIdentity) {
   return version ? toPublicPromptVersion(version) : null;
 }
 
-export async function findPromptVersionForPreview(input: PlaygroundPromptVersionIdentity) {
+export async function findPromptVersionForPreview(input: PreviewPromptVersionIdentity) {
   const version = await prisma.promptVersion.findFirst({
     where: {
       id: input.versionId,
