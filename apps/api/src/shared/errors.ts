@@ -10,14 +10,13 @@ import {
   SchemaTemplateMismatchError,
   TagNotFoundError,
 } from "../modules/prompt-versions/prompt-version.service.js";
-import { VariableValidationError } from "../modules/runtime/runtime.service.js";
 import { PromptConflictError, PromptNotFoundError } from "../modules/prompts/prompt.service.js";
 import {
   LivePromptVersionNotFoundError,
-  MissingTemplateVariableError,
   RuntimeProjectAccessError,
   TagVersionNotFoundError,
 } from "../modules/runtime/runtime.service.js";
+import { MissingTemplateVariableError, VariableValidationError } from "./prompt-rendering.js";
 
 function sendStructuredError(
   reply: FastifyReply,
