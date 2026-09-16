@@ -2,6 +2,7 @@
 
 import { ChevronDown, Plus } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { extractTemplateVariables } from "@pr/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,9 +23,9 @@ import {
   listPromptTags,
   listProjects,
   listPromptVersions,
+  previewPromptVersion,
   promotePromptVersion,
   removeVersionTag,
-  renderLivePrompt,
   revokeApiKey,
   rollbackPromptVersion,
   setVersionTag,
@@ -34,10 +35,10 @@ import {
   type ExecutionDetail,
   type ExecutionListItem,
   type Prompt,
+  type PromptPreviewResult,
   type PromptVersion,
   type PromptVersionTag,
   type Project,
-  type RuntimeRenderResult,
 } from "@/lib/api";
 import { versionIdempotencyKey } from "@/lib/crypto";
 import { parseJsonObject, parseTemplateVariables } from "@/lib/json";
@@ -46,18 +47,18 @@ import { ThemeToggle } from "../theme/ThemeToggle";
 import {
   ActivityFeed,
   ExecutionHistory,
-  RuntimePanel,
+  PreviewPanel,
   TemplateBlock,
   VersionLedger,
   timeAgo,
   type StatusMessage,
 } from "./ConsolePanels";
 
-type TabId = "versions" | "runtime" | "history" | "activity";
+type TabId = "versions" | "preview" | "history" | "activity";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "versions", label: "Versions" },
-  { id: "runtime", label: "Runtime" },
+  { id: "preview", label: "Preview" },
   { id: "history", label: "History" },
   { id: "activity", label: "Activity" },
 ];
@@ -66,10 +67,19 @@ const DEFAULT_MODEL_PARAMS = `{
   "temperature": 0.2
 }`;
 
-const DEFAULT_RUNTIME_VARIABLES = `{
-  "customer_name": "Asha",
-  "issue": "a delayed order"
-}`;
+const EMPTY_PREVIEW_VARIABLES = "{}";
+
+function defaultPreviewVariables(version: PromptVersion | null) {
+  if (!version) {
+    return EMPTY_PREVIEW_VARIABLES;
+  }
+
+  return JSON.stringify(
+    Object.fromEntries(extractTemplateVariables(version.template).map((variable) => [variable, ""])),
+    null,
+    2,
+  );
+}
 
 const RAW_API_KEY_DISPLAY_MS = 30_000;
 
@@ -169,11 +179,12 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [revokingApiKeyId, setRevokingApiKeyId] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
-  const [runtimeVariables, setRuntimeVariables] = useState(DEFAULT_RUNTIME_VARIABLES);
-  const [renderResult, setRenderResult] = useState<RuntimeRenderResult | null>(null);
-  const [isRendering, setIsRendering] = useState(false);
-  const [runtimeMessage, setRuntimeMessage] = useState<StatusMessage>({
-    text: "Promote a live version, then render it here.",
+  const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
+  const [previewVariables, setPreviewVariables] = useState(EMPTY_PREVIEW_VARIABLES);
+  const [previewResult, setPreviewResult] = useState<PromptPreviewResult | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState<StatusMessage>({
+    text: "Select a prompt version to preview it.",
     isError: false,
   });
 
@@ -203,6 +214,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
   const selectedPrompt = prompts.find((item) => item.id === selectedPromptId) ?? null;
   const liveVersion = promptVersions.find((version) => version.status === "LIVE") ?? null;
+  const previewVersion = promptVersions.find((version) => version.id === previewVersionId) ?? null;
   const heroTemplate = liveVersion?.template ?? promptVersions[0]?.template ?? null;
 
   useEffect(() => {
@@ -505,14 +517,18 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   }, [accessToken, selectedProjectId, selectedExecutionId]);
 
   useEffect(() => {
-    setRenderResult(null);
-    setRuntimeMessage({
-      text: liveVersion
-        ? "Ready to render the live prompt."
-        : "Promote a live version, then render it here.",
+    const defaultVersion = liveVersion ?? promptVersions[0] ?? null;
+
+    setPreviewVersionId(defaultVersion?.id ?? null);
+    setPreviewVariables(defaultPreviewVariables(defaultVersion));
+    setPreviewResult(null);
+    setPreviewMessage({
+      text: defaultVersion
+        ? `Ready to preview version ${defaultVersion.version}.`
+        : "Create a prompt version to preview it.",
       isError: false,
     });
-  }, [liveVersion?.id, selectedProjectId, selectedPromptId]);
+  }, [promptVersions, selectedProjectId, selectedPromptId]);
 
   const activeKeyCount = apiKeys.filter((key) => !key.revokedAt).length;
   const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -959,67 +975,62 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     }
   }
 
-  async function handleRender(event: FormEvent<HTMLFormElement>) {
+  function handlePreviewVersionChange(versionId: string) {
+    const version = promptVersions.find((item) => item.id === versionId) ?? null;
+
+    setPreviewVersionId(version?.id ?? null);
+    setPreviewVariables(defaultPreviewVariables(version));
+    setPreviewResult(null);
+    setPreviewMessage({
+      text: version ? `Ready to preview version ${version.version}.` : "Select a version.",
+      isError: false,
+    });
+  }
+
+  function handlePreviewReset() {
+    setPreviewVariables(defaultPreviewVariables(previewVersion));
+    setPreviewResult(null);
+    setPreviewMessage({
+      text: previewVersion
+        ? `Preview for version ${previewVersion.version} reset.`
+        : "Select a version.",
+      isError: false,
+    });
+  }
+
+  async function handlePreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedProjectId || !selectedPromptId || !liveVersion || !user) {
+    if (!selectedProjectId || !selectedPromptId || !previewVersion) {
       return;
     }
 
-    setIsRendering(true);
-    setRuntimeMessage({ text: "Rendering live prompt...", isError: false });
+    setIsPreviewing(true);
+    setPreviewMessage({ text: "Rendering preview...", isError: false });
 
     try {
-      const variables = parseTemplateVariables(runtimeVariables);
-      const result = await renderLivePrompt(accessToken, selectedProjectId, selectedPromptId, {
-        variables,
-      });
+      const variables = parseTemplateVariables(previewVariables);
+      const result = await previewPromptVersion(
+        accessToken,
+        selectedProjectId,
+        selectedPromptId,
+        previewVersion.id,
+        { variables },
+      );
 
-      setRenderResult(result);
-      setExecutions((current) => [
-        {
-          id: result.executionId,
-          latencyMs: null,
-          output: null,
-          error: null,
-          promptTokens: null,
-          completionTokens: null,
-          totalTokens: null,
-          costUsd: null,
-          createdAt: new Date().toISOString(),
-          prompt: {
-            id: result.prompt.id,
-            name: result.prompt.name,
-            slug: result.prompt.slug,
-          },
-          promptVersion: {
-            id: result.promptVersion.id,
-            version: result.promptVersion.version,
-            status: result.promptVersion.status,
-            model: result.promptVersion.model,
-          },
-          apiKey: null,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          },
-        },
-        ...current.filter((execution) => execution.id !== result.executionId),
-      ]);
-      setSelectedExecutionId(result.executionId);
-      setRuntimeMessage({
-        text: `Rendered live version v${result.promptVersion.version}.`,
+      setPreviewResult(result);
+      setPreviewMessage({
+        text: `Previewed version ${result.promptVersion.version}.`,
         isError: false,
       });
     } catch (error) {
-      setRenderResult(null);
-      setRuntimeMessage({
-        text: errorMessage(error, "Failed to render live prompt"),
+      setPreviewResult(null);
+      setPreviewMessage({
+        text: errorMessage(error, "Failed to preview prompt version"),
         isError: true,
       });
     } finally {
-      setIsRendering(false);
+      setIsPreviewing(false);
     }
   }
 
@@ -1489,15 +1500,19 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                   />
                 ) : null}
 
-                {activeTab === "runtime" ? (
-                  <RuntimePanel
-                    canRender={Boolean(selectedProjectId && selectedPromptId && liveVersion)}
-                    isRendering={isRendering}
-                    message={runtimeMessage}
-                    onVariablesChange={setRuntimeVariables}
-                    onSubmit={(event) => void handleRender(event)}
-                    result={renderResult}
-                    variablesJson={runtimeVariables}
+                {activeTab === "preview" ? (
+                  <PreviewPanel
+                    isPreviewing={isPreviewing}
+                    message={previewMessage}
+                    onReset={handlePreviewReset}
+                    onSubmit={(event) => void handlePreview(event)}
+                    onVariablesChange={setPreviewVariables}
+                    onVersionChange={handlePreviewVersionChange}
+                    result={previewResult}
+                    selectedVersion={previewVersion}
+                    selectedVersionId={previewVersionId}
+                    variablesJson={previewVariables}
+                    versions={promptVersions}
                   />
                 ) : null}
 

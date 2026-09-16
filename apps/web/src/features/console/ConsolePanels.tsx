@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { extractTemplateVariables } from "@pr/shared";
 import type { FormEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,9 @@ import type {
   AuditEventListItem,
   ExecutionDetail,
   ExecutionListItem,
+  PromptPreviewResult,
   PromptVersion,
   PromptVersionTag,
-  RuntimeRenderResult,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { VersionDiffView } from "./VersionDiff";
@@ -524,42 +525,95 @@ export function VersionLedger({
   );
 }
 
-type RuntimePanelProps = {
+type PreviewPanelProps = {
+  versions: PromptVersion[];
+  selectedVersionId: string | null;
+  selectedVersion: PromptVersion | null;
   variablesJson: string;
-  result: RuntimeRenderResult | null;
-  isRendering: boolean;
-  canRender: boolean;
+  result: PromptPreviewResult | null;
+  isPreviewing: boolean;
   message: StatusMessage;
+  onVersionChange: (versionId: string) => void;
   onVariablesChange: (value: string) => void;
+  onReset: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-export function RuntimePanel({
+export function PreviewPanel({
+  versions,
+  selectedVersionId,
+  selectedVersion,
   variablesJson,
   result,
-  isRendering,
-  canRender,
+  isPreviewing,
   message,
+  onVersionChange,
   onVariablesChange,
+  onReset,
   onSubmit,
-}: RuntimePanelProps) {
+}: PreviewPanelProps) {
+  const variables = selectedVersion ? extractTemplateVariables(selectedVersion.template) : [];
+
   return (
-    <form className="mt-5 grid gap-4 lg:grid-cols-2" onSubmit={onSubmit}>
+    <form className="mt-5 grid gap-5" onSubmit={onSubmit}>
+      <div className="grid gap-3 rounded-xl border bg-card p-4">
+        <div className="grid gap-1.5 sm:max-w-xs">
+          <Label htmlFor="preview-version">Prompt version</Label>
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 font-mono text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={versions.length === 0 || isPreviewing}
+            id="preview-version"
+            onChange={(event) => onVersionChange(event.target.value)}
+            value={selectedVersionId ?? ""}
+          >
+            {versions.length === 0 ? <option value="">No versions available</option> : null}
+            {versions.map((version) => (
+              <option key={version.id} value={version.id}>
+                v{version.version} — {version.status.toLowerCase()}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {selectedVersion ? (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {variables.length > 0 ? (
+                variables.map((variable) => (
+                  <Badge key={variable} variant="outline">
+                    {`{{${variable}}}`}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">No template variables detected.</span>
+              )}
+            </div>
+            <TemplateBlock template={selectedVersion.template} />
+          </>
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
       <div className="grid content-start gap-2.5">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Variables JSON</p>
-          <span className="font-mono text-[11px] text-muted-foreground">POST /runtime/…/render</span>
+          <span className="font-mono text-[11px] text-muted-foreground">Preview only · no execution recorded</span>
         </div>
         <Textarea
           className="font-mono text-xs leading-relaxed"
-          disabled={!canRender || isRendering}
+          disabled={!selectedVersion || isPreviewing}
           onChange={(event) => onVariablesChange(event.target.value)}
           rows={12}
           value={variablesJson}
         />
-        <Button className="justify-self-start" disabled={!canRender || isRendering} type="submit">
-          {isRendering ? "Rendering..." : "Render"}
-        </Button>
+        <div className="flex gap-2">
+          <Button disabled={!selectedVersion || isPreviewing} type="submit">
+            {isPreviewing ? "Previewing..." : "Preview"}
+          </Button>
+          <Button disabled={!selectedVersion || isPreviewing} onClick={onReset} type="button" variant="outline">
+            Reset
+          </Button>
+        </div>
         <StatusLine message={message} />
       </div>
       <div className="grid content-start gap-2.5">
@@ -567,7 +621,7 @@ export function RuntimePanel({
           <p className="text-sm font-semibold">Rendered output</p>
           {result ? (
             <span className="font-mono text-[11px] text-muted-foreground">
-              served v{result.promptVersion.version}
+              previewed v{result.promptVersion.version}
             </span>
           ) : null}
         </div>
@@ -575,18 +629,18 @@ export function RuntimePanel({
           <>
             <TemplateBlock template={result.renderedPrompt} />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              What your application receives when it asks for the live prompt. Variables are
-              validated against the schema before rendering.
+              Variables were validated against this immutable version&apos;s schema before rendering.
             </p>
           </>
         ) : (
           <div className="grid content-start justify-items-start gap-1.5 rounded-xl border border-dashed p-6">
             <strong className="text-sm">No render yet</strong>
             <p className="m-0 text-xs leading-relaxed text-muted-foreground">
-              Submit variables to preview exactly what the runtime returns for the live version.
+              Submit variables to preview the selected immutable version.
             </p>
           </div>
         )}
+      </div>
       </div>
     </form>
   );
