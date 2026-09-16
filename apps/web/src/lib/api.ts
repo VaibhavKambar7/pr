@@ -123,6 +123,15 @@ type RenderLivePromptInput = {
   variables: Record<string, string | number | boolean | null>;
 };
 
+export type PreviewPromptInput = {
+  variables: Record<string, string | number | boolean | null>;
+};
+
+export type PromptPreviewResult = {
+  promptVersion: PromptVersion;
+  renderedPrompt: string;
+};
+
 export type RuntimeRenderResult = {
   executionId: string;
   prompt: Prompt;
@@ -478,6 +487,23 @@ export function rollbackPromptVersion(
     {
       method: "POST",
       body: JSON.stringify({ expectedLiveVersion }),
+    },
+  );
+}
+
+export function previewPromptVersion(
+  accessToken: string,
+  projectId: string,
+  promptId: string,
+  versionId: string,
+  input: PreviewPromptInput,
+) {
+  return requestWithAuth<PromptPreviewResult>(
+    accessToken,
+    `/projects/${projectId}/prompts/${promptId}/versions/${versionId}/preview`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
     },
   );
 }
