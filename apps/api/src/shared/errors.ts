@@ -148,6 +148,37 @@ export function sendRuntimeError(reply: FastifyReply, error: unknown) {
   );
 }
 
+export function sendPreviewError(reply: FastifyReply, error: unknown) {
+  if (error instanceof ProjectNotFoundError) {
+    return sendStructuredError(reply, 404, "PROJECT_NOT_FOUND", error.message);
+  }
+
+  if (error instanceof PromptVersionNotFoundError) {
+    return sendStructuredError(reply, 404, "PROMPT_VERSION_NOT_FOUND", error.message);
+  }
+
+  if (error instanceof MissingTemplateVariableError) {
+    return sendStructuredError(reply, 400, "MISSING_VARIABLE", error.message);
+  }
+
+  if (error instanceof VariableValidationError) {
+    return sendStructuredError(
+      reply,
+      400,
+      "PROMPT_VARIABLE_VALIDATION_FAILED",
+      error.message,
+      error.issues,
+    );
+  }
+
+  return sendStructuredError(
+    reply,
+    500,
+    "PREVIEW_OPERATION_FAILED",
+    error instanceof Error ? error.message : "preview operation failed",
+  );
+}
+
 export function sendApiKeyError(reply: FastifyReply, error: unknown) {
   if (error instanceof ProjectNotFoundError) {
     return sendStructuredError(reply, 404, "PROJECT_NOT_FOUND", error.message);
