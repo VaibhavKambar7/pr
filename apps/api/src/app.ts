@@ -8,6 +8,7 @@ import { apiKeyRoutes } from "./modules/api-keys/api-key.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { AUTH_TOKEN_EXPIRES_IN, getJwtSecret } from "./modules/auth/auth.service.js";
 import { executionRoutes } from "./modules/executions/execution.routes.js";
+import { previewRoutes } from "./modules/preview/preview.routes.js";
 import { projectRoutes } from "./modules/projects/project.routes.js";
 import { promptVersionRoutes } from "./modules/prompt-versions/prompt-version.routes.js";
 import { promptRoutes } from "./modules/prompts/prompt.routes.js";
@@ -66,6 +67,7 @@ export const buildApp = () => {
   void app.register(apiKeyRoutes, { prefix: "/projects" });
   void app.register(auditEventRoutes, { prefix: "/projects" });
   void app.register(executionRoutes, { prefix: "/projects" });
+  void app.register(previewRoutes, { prefix: "/projects" });
   void app.register(projectRoutes, { prefix: "/projects" });
   void app.register(promptRoutes, { prefix: "/projects" });
   void app.register(promptVersionRoutes, { prefix: "/projects" });
