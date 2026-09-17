@@ -69,13 +69,63 @@ const DEFAULT_MODEL_PARAMS = `{
 
 const EMPTY_PREVIEW_VARIABLES = "{}";
 
+function isPreviewVariableValue(value: unknown): value is string | number | boolean | null {
+  return value === null || ["string", "number", "boolean"].includes(typeof value);
+}
+
+function defaultPreviewVariableValue(
+  variableSchema: Record<string, unknown> | null,
+  variable: string,
+): string | number | boolean | null {
+  const properties = variableSchema?.properties;
+
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    return "";
+  }
+
+  const definition = (properties as Record<string, unknown>)[variable];
+
+  if (!definition || typeof definition !== "object" || Array.isArray(definition)) {
+    return "";
+  }
+
+  const propertySchema = definition as Record<string, unknown>;
+
+  if (isPreviewVariableValue(propertySchema.default)) {
+    return propertySchema.default;
+  }
+
+  const enumValues = propertySchema.enum;
+
+  if (Array.isArray(enumValues) && isPreviewVariableValue(enumValues[0])) {
+    return enumValues[0];
+  }
+
+  switch (propertySchema.type) {
+    case "number":
+    case "integer":
+      return typeof propertySchema.minimum === "number" ? propertySchema.minimum : 0;
+    case "boolean":
+      return false;
+    case "null":
+      return null;
+    default:
+      return "";
+  }
+}
+
 function defaultPreviewVariables(version: PromptVersion | null) {
   if (!version) {
     return EMPTY_PREVIEW_VARIABLES;
   }
 
   return JSON.stringify(
-    Object.fromEntries(extractTemplateVariables(version.template).map((variable) => [variable, ""])),
+    Object.fromEntries(
+      extractTemplateVariables(version.template).map((variable) => [
+        variable,
+        defaultPreviewVariableValue(version.variableSchema, variable),
+      ]),
+    ),
     null,
     2,
   );
