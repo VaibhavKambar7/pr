@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Plus } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { extractTemplateVariables } from "@pr/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -233,6 +233,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [previewVariables, setPreviewVariables] = useState(EMPTY_PREVIEW_VARIABLES);
   const [previewResult, setPreviewResult] = useState<PromptPreviewResult | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewRequestSequence = useRef(0);
   const [previewMessage, setPreviewMessage] = useState<StatusMessage>({
     text: "Select a prompt version to preview it.",
     isError: false,
@@ -569,6 +570,8 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   useEffect(() => {
     const defaultVersion = liveVersion ?? promptVersions[0] ?? null;
 
+    previewRequestSequence.current += 1;
+    setIsPreviewing(false);
     setPreviewVersionId(defaultVersion?.id ?? null);
     setPreviewVariables(defaultPreviewVariables(defaultVersion));
     setPreviewResult(null);
@@ -1028,6 +1031,8 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   function handlePreviewVersionChange(versionId: string) {
     const version = promptVersions.find((item) => item.id === versionId) ?? null;
 
+    previewRequestSequence.current += 1;
+    setIsPreviewing(false);
     setPreviewVersionId(version?.id ?? null);
     setPreviewVariables(defaultPreviewVariables(version));
     setPreviewResult(null);
@@ -1038,6 +1043,8 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   }
 
   function handlePreviewReset() {
+    previewRequestSequence.current += 1;
+    setIsPreviewing(false);
     setPreviewVariables(defaultPreviewVariables(previewVersion));
     setPreviewResult(null);
     setPreviewMessage({
@@ -1055,6 +1062,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       return;
     }
 
+    const requestSequence = ++previewRequestSequence.current;
     setIsPreviewing(true);
     setPreviewMessage({ text: "Rendering preview...", isError: false });
 
@@ -1068,19 +1076,29 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
         { variables },
       );
 
+      if (requestSequence !== previewRequestSequence.current) {
+        return;
+      }
+
       setPreviewResult(result);
       setPreviewMessage({
         text: `Previewed version ${result.promptVersion.version}.`,
         isError: false,
       });
     } catch (error) {
+      if (requestSequence !== previewRequestSequence.current) {
+        return;
+      }
+
       setPreviewResult(null);
       setPreviewMessage({
         text: errorMessage(error, "Failed to preview prompt version"),
         isError: true,
       });
     } finally {
-      setIsPreviewing(false);
+      if (requestSequence === previewRequestSequence.current) {
+        setIsPreviewing(false);
+      }
     }
   }
 
