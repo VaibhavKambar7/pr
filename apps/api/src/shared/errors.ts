@@ -175,7 +175,7 @@ export function sendPreviewError(reply: FastifyReply, error: unknown) {
     reply,
     500,
     "PREVIEW_OPERATION_FAILED",
-    error instanceof Error ? error.message : "preview operation failed",
+    "preview operation failed",
   );
 }
 
