@@ -1,5 +1,11 @@
 import { RuntimeResource } from "./resources/runtime.js";
 import type { RequestContext } from "./http.js";
+import type {
+  GetPromptOptions,
+  RenderPromptInput,
+  RuntimeGetResult,
+  RuntimeRenderResult,
+} from "./types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -58,5 +64,13 @@ export class PrClient {
     };
 
     this.runtime = new RuntimeResource(this.context, options.projectId);
+  }
+
+  fetchPrompt(promptId: string, options: GetPromptOptions = {}): Promise<RuntimeGetResult> {
+    return this.runtime.get(promptId, options);
+  }
+
+  renderPrompt(promptId: string, input: RenderPromptInput): Promise<RuntimeRenderResult> {
+    return this.runtime.render(promptId, input);
   }
 }

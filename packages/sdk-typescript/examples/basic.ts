@@ -9,11 +9,11 @@ const client = new PrClient({
 const promptId = requiredEnv("PR_PROMPT_ID");
 
 try {
-  const livePrompt = await client.runtime.get(promptId);
+  const livePrompt = await client.fetchPrompt(promptId);
 
   console.log(`Using ${livePrompt.prompt.slug} v${livePrompt.promptVersion.version}`);
 
-  const result = await client.runtime.render(promptId, {
+  const result = await client.renderPrompt(promptId, {
     variables: {
       customer_name: "Asha",
       issue: "a delayed order",
