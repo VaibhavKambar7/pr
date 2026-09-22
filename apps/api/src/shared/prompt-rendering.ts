@@ -74,7 +74,7 @@ export function renderPromptTemplate(template: string, variables: PromptVariable
   return template.replace(
     /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g,
     (_match, variableName: string) => {
-      if (!(variableName in variables)) {
+      if (!Object.hasOwn(variables, variableName)) {
         throw new MissingTemplateVariableError(variableName);
       }
 
