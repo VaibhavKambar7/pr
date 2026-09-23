@@ -8,6 +8,25 @@ type VariableValidationIssue = {
   message: string;
 };
 
+function validationIssuePath(error: {
+  instancePath: string;
+  keyword: string;
+  params: Record<string, unknown>;
+}): string {
+  if (error.keyword === "required" && typeof error.params.missingProperty === "string") {
+    return `${error.instancePath}/${error.params.missingProperty}`;
+  }
+
+  if (
+    error.keyword === "additionalProperties" &&
+    typeof error.params.additionalProperty === "string"
+  ) {
+    return `${error.instancePath}/${error.params.additionalProperty}`;
+  }
+
+  return error.instancePath || "/";
+}
+
 export class VariableValidationError extends Error {
   constructor(public readonly issues: VariableValidationIssue[]) {
     super("prompt variables failed validation");
@@ -63,7 +82,7 @@ export function validatePromptVariables(
   }
 
   const issues = (validator.errors ?? []).map((error) => ({
-    path: error.instancePath || "/",
+    path: validationIssuePath(error),
     message: error.message ?? "validation failed",
   }));
 
