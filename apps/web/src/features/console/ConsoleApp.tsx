@@ -103,8 +103,9 @@ function defaultPreviewVariableValue(
 
   switch (propertySchema.type) {
     case "number":
-    case "integer":
       return typeof propertySchema.minimum === "number" ? propertySchema.minimum : 0;
+    case "integer":
+      return typeof propertySchema.minimum === "number" ? Math.ceil(propertySchema.minimum) : 0;
     case "boolean":
       return false;
     case "null":
