@@ -244,7 +244,7 @@ export function validatePromptVariableSchema(
     const required = Array.isArray(schema.required) ? (schema.required as string[]) : [];
 
     for (const varName of templateVariables) {
-      if (!(varName in properties)) {
+      if (!Object.hasOwn(properties, varName)) {
         issues.push({
           path: `variableSchema.properties.${varName}`,
           keyword: "required",
