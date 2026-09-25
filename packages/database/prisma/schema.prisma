@@ -64,6 +64,7 @@ model Project {
   ownerId     String
   owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   prompts     Prompt[]
+  tools       Tool[]
   apiKeys     ApiKey[]
   executions  Execution[]
   auditEvents AuditEvent[]
@@ -72,6 +73,21 @@ model Project {
 
   @@unique([ownerId, slug])
   @@index([ownerId])
+}
+
+model Tool {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String
+  inputSchema Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, slug])
+  @@index([projectId])
 }
 
 model Prompt {
