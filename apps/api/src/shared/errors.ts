@@ -16,6 +16,7 @@ import {
   RuntimeProjectAccessError,
   TagVersionNotFoundError,
 } from "../modules/runtime/runtime.service.js";
+import { ToolConflictError } from "../modules/tools/tool.service.js";
 import { MissingTemplateVariableError, VariableValidationError } from "./prompt-rendering.js";
 
 function sendStructuredError(
@@ -98,6 +99,23 @@ export function sendPromptError(reply: FastifyReply, error: unknown) {
   }
 
   return sendStructuredError(reply, 500, "PROMPT_OPERATION_FAILED", error instanceof Error ? error.message : "prompt operation failed");
+}
+
+export function sendToolError(reply: FastifyReply, error: unknown) {
+  if (error instanceof ProjectNotFoundError) {
+    return sendStructuredError(reply, 404, "PROJECT_NOT_FOUND", error.message);
+  }
+
+  if (error instanceof ToolConflictError) {
+    return sendStructuredError(reply, 409, "TOOL_CONFLICT", error.message);
+  }
+
+  return sendStructuredError(
+    reply,
+    500,
+    "TOOL_OPERATION_FAILED",
+    error instanceof Error ? error.message : "tool operation failed",
+  );
 }
 
 export function sendPromptVersionError(reply: FastifyReply, error: unknown) {

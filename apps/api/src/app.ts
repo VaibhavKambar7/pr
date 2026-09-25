@@ -13,6 +13,7 @@ import { projectRoutes } from "./modules/projects/project.routes.js";
 import { promptVersionRoutes } from "./modules/prompt-versions/prompt-version.routes.js";
 import { promptRoutes } from "./modules/prompts/prompt.routes.js";
 import { runtimeRoutes } from "./modules/runtime/runtime.routes.js";
+import { toolRoutes } from "./modules/tools/tool.routes.js";
 
 const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
@@ -71,6 +72,7 @@ export const buildApp = () => {
   void app.register(projectRoutes, { prefix: "/projects" });
   void app.register(promptRoutes, { prefix: "/projects" });
   void app.register(promptVersionRoutes, { prefix: "/projects" });
+  void app.register(toolRoutes, { prefix: "/projects" });
   void app.register(runtimeRoutes, { prefix: "/runtime" });
 
   return app;
