@@ -1,5 +1,5 @@
 import { prisma, type Prisma } from "@pr/database";
-import type { CreateToolInput } from "./tool.schema.js";
+import type { CreateToolInput, UpdateToolInput } from "./tool.schema.js";
 
 type CreateToolRecordInput = CreateToolInput & {
   projectId: string;
@@ -25,6 +25,34 @@ export async function findToolBySlug(projectId: string, slug: string) {
         projectId,
         slug,
       },
+    },
+  });
+}
+
+export async function findToolById(projectId: string, toolId: string) {
+  return prisma.tool.findFirst({
+    where: {
+      id: toolId,
+      projectId,
+    },
+  });
+}
+
+export async function updateTool(
+  projectId: string,
+  toolId: string,
+  input: UpdateToolInput & { slug?: string },
+) {
+  return prisma.tool.updateMany({
+    where: {
+      id: toolId,
+      projectId,
+    },
+    data: {
+      name: input.name,
+      slug: input.slug,
+      description: input.description,
+      inputSchema: input.inputSchema as Prisma.InputJsonValue | undefined,
     },
   });
 }

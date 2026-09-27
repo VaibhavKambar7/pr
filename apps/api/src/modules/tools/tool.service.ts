@@ -1,10 +1,22 @@
 import { getProjectForUser } from "../projects/project.service.js";
-import { createTool, findToolBySlug, listToolsByProject } from "./tool.repository.js";
-import type { CreateToolInput } from "./tool.schema.js";
+import {
+  createTool,
+  findToolById,
+  findToolBySlug,
+  listToolsByProject,
+  updateTool,
+} from "./tool.repository.js";
+import type { CreateToolInput, UpdateToolInput } from "./tool.schema.js";
 
 export class ToolConflictError extends Error {
   constructor() {
     super("tool slug already exists");
+  }
+}
+
+export class ToolNotFoundError extends Error {
+  constructor() {
+    super("tool not found");
   }
 }
 
@@ -39,4 +51,43 @@ export async function createToolForProject(
 export async function listToolsForProject(ownerId: string, projectId: string) {
   await getProjectForUser(ownerId, projectId);
   return listToolsByProject(projectId);
+}
+
+export async function updateToolForProject(
+  ownerId: string,
+  projectId: string,
+  toolId: string,
+  input: UpdateToolInput,
+) {
+  await getProjectForUser(ownerId, projectId);
+
+  const existingTool = await findToolById(projectId, toolId);
+
+  if (!existingTool) {
+    throw new ToolNotFoundError();
+  }
+
+  const slug = input.slug ? toSlug(input.slug) : undefined;
+
+  if (slug && slug !== existingTool.slug) {
+    const toolWithSlug = await findToolBySlug(projectId, slug);
+
+    if (toolWithSlug) {
+      throw new ToolConflictError();
+    }
+  }
+
+  const result = await updateTool(projectId, toolId, { ...input, slug });
+
+  if (result.count === 0) {
+    throw new ToolNotFoundError();
+  }
+
+  const updatedTool = await findToolById(projectId, toolId);
+
+  if (!updatedTool) {
+    throw new ToolNotFoundError();
+  }
+
+  return updatedTool;
 }

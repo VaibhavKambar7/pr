@@ -16,7 +16,7 @@ import {
   RuntimeProjectAccessError,
   TagVersionNotFoundError,
 } from "../modules/runtime/runtime.service.js";
-import { ToolConflictError } from "../modules/tools/tool.service.js";
+import { ToolConflictError, ToolNotFoundError } from "../modules/tools/tool.service.js";
 import { MissingTemplateVariableError, VariableValidationError } from "./prompt-rendering.js";
 
 function sendStructuredError(
@@ -108,6 +108,10 @@ export function sendToolError(reply: FastifyReply, error: unknown) {
 
   if (error instanceof ToolConflictError) {
     return sendStructuredError(reply, 409, "TOOL_CONFLICT", error.message);
+  }
+
+  if (error instanceof ToolNotFoundError) {
+    return sendStructuredError(reply, 404, "TOOL_NOT_FOUND", error.message);
   }
 
   return sendStructuredError(
