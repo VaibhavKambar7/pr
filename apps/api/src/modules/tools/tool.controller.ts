@@ -4,6 +4,7 @@ import { requireUser } from "../../shared/http.js";
 import { createToolSchema, updateToolSchema } from "./tool.schema.js";
 import {
   createToolForProject,
+  deleteToolForProject,
   listToolsForProject,
   updateToolForProject,
 } from "./tool.service.js";
@@ -100,6 +101,24 @@ export async function updateToolController(
       parsedBody.data,
     );
     return reply.code(200).send({ tool });
+  } catch (error) {
+    return sendToolError(reply, error);
+  }
+}
+
+export async function deleteToolController(
+  request: FastifyRequest<{ Params: ToolParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    await deleteToolForProject(user.id, request.params.projectId, request.params.toolId);
+    return reply.code(204).send();
   } catch (error) {
     return sendToolError(reply, error);
   }

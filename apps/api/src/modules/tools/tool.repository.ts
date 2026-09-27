@@ -57,6 +57,15 @@ export async function updateTool(
   });
 }
 
+export async function deleteTool(projectId: string, toolId: string) {
+  return prisma.tool.deleteMany({
+    where: {
+      id: toolId,
+      projectId,
+    },
+  });
+}
+
 export async function listToolsByProject(projectId: string) {
   return prisma.tool.findMany({
     where: { projectId },

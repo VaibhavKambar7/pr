@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../auth/auth.middleware.js";
 import {
   createToolController,
+  deleteToolController,
   listToolsController,
   updateToolController,
 } from "./tool.controller.js";
@@ -12,4 +13,5 @@ export async function toolRoutes(app: FastifyInstance) {
   app.post("/:projectId/tools", createToolController);
   app.get("/:projectId/tools", listToolsController);
   app.patch("/:projectId/tools/:toolId", updateToolController);
+  app.delete("/:projectId/tools/:toolId", deleteToolController);
 }

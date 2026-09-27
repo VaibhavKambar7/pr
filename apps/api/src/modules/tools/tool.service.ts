@@ -1,6 +1,7 @@
 import { getProjectForUser } from "../projects/project.service.js";
 import {
   createTool,
+  deleteTool,
   findToolById,
   findToolBySlug,
   listToolsByProject,
@@ -90,4 +91,18 @@ export async function updateToolForProject(
   }
 
   return updatedTool;
+}
+
+export async function deleteToolForProject(
+  ownerId: string,
+  projectId: string,
+  toolId: string,
+) {
+  await getProjectForUser(ownerId, projectId);
+
+  const result = await deleteTool(projectId, toolId);
+
+  if (result.count === 0) {
+    throw new ToolNotFoundError();
+  }
 }
