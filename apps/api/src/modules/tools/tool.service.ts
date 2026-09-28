@@ -54,6 +54,18 @@ export async function listToolsForProject(ownerId: string, projectId: string) {
   return listToolsByProject(projectId);
 }
 
+export async function getToolForProject(ownerId: string, projectId: string, toolId: string) {
+  await getProjectForUser(ownerId, projectId);
+
+  const tool = await findToolById(projectId, toolId);
+
+  if (!tool) {
+    throw new ToolNotFoundError();
+  }
+
+  return tool;
+}
+
 export async function updateToolForProject(
   ownerId: string,
   projectId: string,

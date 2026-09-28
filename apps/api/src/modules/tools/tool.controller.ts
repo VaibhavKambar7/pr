@@ -5,6 +5,7 @@ import { createToolSchema, updateToolSchema } from "./tool.schema.js";
 import {
   createToolForProject,
   deleteToolForProject,
+  getToolForProject,
   listToolsForProject,
   updateToolForProject,
 } from "./tool.service.js";
@@ -63,6 +64,28 @@ export async function listToolsController(
   try {
     const tools = await listToolsForProject(user.id, request.params.projectId);
     return reply.code(200).send({ tools });
+  } catch (error) {
+    return sendToolError(reply, error);
+  }
+}
+
+export async function getToolController(
+  request: FastifyRequest<{ Params: ToolParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const tool = await getToolForProject(
+      user.id,
+      request.params.projectId,
+      request.params.toolId,
+    );
+    return reply.code(200).send({ tool });
   } catch (error) {
     return sendToolError(reply, error);
   }
