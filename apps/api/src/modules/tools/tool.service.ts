@@ -46,7 +46,7 @@ export async function createToolForProject(
     throw new ToolConflictError();
   }
 
-  return createTool({ ...input, projectId, slug });
+  return createTool({ ...input, projectId, ownerId, slug });
 }
 
 export async function listToolsForProject(ownerId: string, projectId: string) {
@@ -90,7 +90,7 @@ export async function updateToolForProject(
     }
   }
 
-  const result = await updateTool(projectId, toolId, { ...input, slug });
+  const result = await updateTool(projectId, toolId, ownerId, { ...input, slug });
 
   if (result.count === 0) {
     throw new ToolNotFoundError();
@@ -112,7 +112,7 @@ export async function deleteToolForProject(
 ) {
   await getProjectForUser(ownerId, projectId);
 
-  const result = await deleteTool(projectId, toolId);
+  const result = await deleteTool(projectId, toolId, ownerId);
 
   if (result.count === 0) {
     throw new ToolNotFoundError();

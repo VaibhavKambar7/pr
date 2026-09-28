@@ -1,20 +1,74 @@
-import { prisma, type Prisma } from "@pr/database";
+import { AuditAction, prisma, type Prisma } from "@pr/database";
 import type { CreateToolInput, UpdateToolInput } from "./tool.schema.js";
 
 type CreateToolRecordInput = CreateToolInput & {
   projectId: string;
+  ownerId: string;
   slug: string;
 };
 
-export async function createTool(input: CreateToolRecordInput) {
-  return prisma.tool.create({
+type ToolAuditSnapshot = {
+  name: string;
+  slug: string;
+  description: string;
+  inputSchema: Prisma.JsonValue;
+};
+
+function toToolAuditSnapshot(tool: ToolAuditSnapshot): Prisma.InputJsonObject {
+  return {
+    name: tool.name,
+    slug: tool.slug,
+    description: tool.description,
+    inputSchema: tool.inputSchema as Prisma.InputJsonValue,
+  };
+}
+
+async function createToolAuditEvent(
+  tx: Prisma.TransactionClient,
+  input: {
+    projectId: string;
+    actorId: string;
+    action: AuditAction;
+    entityId: string;
+    before: ToolAuditSnapshot | null;
+    after: ToolAuditSnapshot | null;
+  },
+) {
+  await tx.auditEvent.create({
     data: {
       projectId: input.projectId,
-      name: input.name,
-      slug: input.slug,
-      description: input.description,
-      inputSchema: input.inputSchema as Prisma.InputJsonValue,
+      actorId: input.actorId,
+      action: input.action,
+      entityType: "tool",
+      entityId: input.entityId,
+      before: input.before ? toToolAuditSnapshot(input.before) : undefined,
+      after: input.after ? toToolAuditSnapshot(input.after) : undefined,
     },
+  });
+}
+
+export async function createTool(input: CreateToolRecordInput) {
+  return prisma.$transaction(async (tx) => {
+    const tool = await tx.tool.create({
+      data: {
+        projectId: input.projectId,
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        inputSchema: input.inputSchema as Prisma.InputJsonValue,
+      },
+    });
+
+    await createToolAuditEvent(tx, {
+      projectId: input.projectId,
+      actorId: input.ownerId,
+      action: AuditAction.TOOL_CREATED,
+      entityId: tool.id,
+      before: null,
+      after: tool,
+    });
+
+    return tool;
   });
 }
 
@@ -41,28 +95,63 @@ export async function findToolById(projectId: string, toolId: string) {
 export async function updateTool(
   projectId: string,
   toolId: string,
+  ownerId: string,
   input: UpdateToolInput & { slug?: string },
 ) {
-  return prisma.tool.updateMany({
-    where: {
-      id: toolId,
+  return prisma.$transaction(async (tx) => {
+    const existingTool = await tx.tool.findFirst({
+      where: { id: toolId, projectId },
+    });
+
+    if (!existingTool) {
+      return { count: 0 };
+    }
+
+    const updatedTool = await tx.tool.update({
+      where: { id: toolId },
+      data: {
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        inputSchema: input.inputSchema as Prisma.InputJsonValue | undefined,
+      },
+    });
+
+    await createToolAuditEvent(tx, {
       projectId,
-    },
-    data: {
-      name: input.name,
-      slug: input.slug,
-      description: input.description,
-      inputSchema: input.inputSchema as Prisma.InputJsonValue | undefined,
-    },
+      actorId: ownerId,
+      action: AuditAction.TOOL_UPDATED,
+      entityId: toolId,
+      before: existingTool,
+      after: updatedTool,
+    });
+
+    return { count: 1 };
   });
 }
 
-export async function deleteTool(projectId: string, toolId: string) {
-  return prisma.tool.deleteMany({
-    where: {
-      id: toolId,
+export async function deleteTool(projectId: string, toolId: string, ownerId: string) {
+  return prisma.$transaction(async (tx) => {
+    const existingTool = await tx.tool.findFirst({
+      where: { id: toolId, projectId },
+    });
+
+    if (!existingTool) {
+      return { count: 0 };
+    }
+
+    await tx.tool.delete({ where: { id: toolId } });
+
+    await createToolAuditEvent(tx, {
       projectId,
-    },
+      actorId: ownerId,
+      action: AuditAction.TOOL_DELETED,
+      entityId: toolId,
+      before: existingTool,
+      after: null,
+    });
+
+    return { count: 1 };
   });
 }
 
