@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { getRuntimeErrorDetails, sendRuntimeError } from "../../shared/errors.js";
-import { requireUser } from "../../shared/http.js";
+import { getRuntimeContext } from "./runtime.context.js";
 import { getLivePromptVersion, renderLivePrompt } from "./runtime.service.js";
 import { logRuntimeFailure, logRuntimeSuccess } from "./runtime.logging.js";
 import { renderLivePromptSchema, runtimeQuerySchema } from "./runtime.schema.js";
@@ -9,27 +9,6 @@ type RuntimePromptParams = {
   projectId: string;
   promptId: string;
 };
-
-function getRuntimeContext(request: FastifyRequest, reply: FastifyReply) {
-  if (request.apiKey) {
-    return {
-      type: "apiKey" as const,
-      apiKeyId: request.apiKey.id,
-      projectId: request.apiKey.projectId,
-    };
-  }
-
-  const user = requireUser(request, reply);
-
-  if (!user) {
-    return null;
-  }
-
-  return {
-    type: "user" as const,
-    userId: user.id,
-  };
-}
 
 export async function getLivePromptVersionController(
   request: FastifyRequest<{ Params: RuntimePromptParams; Querystring: { tag?: string } }>,
@@ -48,6 +27,8 @@ export async function getLivePromptVersionController(
     logRuntimeFailure({
       request,
       operation: "get_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
       startedAt,
       statusCode: 400,
       errorCode: "INVALID_QUERY_PARAMETERS",
@@ -67,7 +48,14 @@ export async function getLivePromptVersionController(
       parsedQuery.data.tag,
     );
 
-    logRuntimeSuccess({ request, operation: "get_live_prompt", startedAt, statusCode: 200 });
+    logRuntimeSuccess({
+      request,
+      operation: "get_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
+      startedAt,
+      statusCode: 200,
+    });
 
     return reply.code(200).send(result);
   } catch (error) {
@@ -75,6 +63,8 @@ export async function getLivePromptVersionController(
     logRuntimeFailure({
       request,
       operation: "get_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
       startedAt,
       ...errorDetails,
       errorName: error instanceof Error ? error.name : "UnknownError",
@@ -101,6 +91,8 @@ export async function renderLivePromptController(
     logRuntimeFailure({
       request,
       operation: "render_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
       startedAt,
       statusCode: 400,
       errorCode: "INVALID_REQUEST_BODY",
@@ -118,6 +110,8 @@ export async function renderLivePromptController(
     logRuntimeFailure({
       request,
       operation: "render_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
       startedAt,
       statusCode: 400,
       errorCode: "INVALID_QUERY_PARAMETERS",
@@ -138,7 +132,14 @@ export async function renderLivePromptController(
       parsedQuery.data.tag,
     );
 
-    logRuntimeSuccess({ request, operation: "render_live_prompt", startedAt, statusCode: 200 });
+    logRuntimeSuccess({
+      request,
+      operation: "render_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
+      startedAt,
+      statusCode: 200,
+    });
 
     return reply.code(200).send(result);
   } catch (error) {
@@ -146,6 +147,8 @@ export async function renderLivePromptController(
     logRuntimeFailure({
       request,
       operation: "render_live_prompt",
+      projectId: request.params.projectId,
+      promptId: request.params.promptId,
       startedAt,
       ...errorDetails,
       errorName: error instanceof Error ? error.name : "UnknownError",

@@ -1,28 +1,30 @@
 import type { FastifyRequest } from "fastify";
 
-export type RuntimeOperation = "get_live_prompt" | "render_live_prompt";
+export type RuntimeOperation = "get_live_prompt" | "render_live_prompt" | "list_tools";
 
-type RuntimePromptParams = {
+type RuntimeResourceIdentity = {
   projectId: string;
-  promptId: string;
+  promptId?: string;
+  toolSlug?: string;
 };
 
-type RuntimeLogContext = {
-  request: FastifyRequest<{ Params: RuntimePromptParams }>;
+type RuntimeLogContext = RuntimeResourceIdentity & {
+  request: Pick<FastifyRequest, "log" | "apiKey">;
   operation: RuntimeOperation;
   startedAt: number;
   statusCode: number;
 };
 
 export function logRuntimeSuccess(context: RuntimeLogContext) {
-  const { request, operation, startedAt, statusCode } = context;
+  const { request, operation, projectId, promptId, toolSlug, startedAt, statusCode } = context;
 
   request.log.info(
     {
       event: "runtime.request.succeeded",
       operation,
-      projectId: request.params.projectId,
-      promptId: request.params.promptId,
+      projectId,
+      promptId,
+      toolSlug,
       statusCode,
       latencyMs: Date.now() - startedAt,
     },
@@ -36,14 +38,25 @@ export function logRuntimeFailure(
     errorName?: string;
   },
 ) {
-  const { request, operation, startedAt, statusCode, errorCode, errorName } = context;
+  const {
+    request,
+    operation,
+    projectId,
+    promptId,
+    toolSlug,
+    startedAt,
+    statusCode,
+    errorCode,
+    errorName,
+  } = context;
 
   request.log.warn(
     {
       event: "runtime.request.failed",
       operation,
-      projectId: request.params.projectId,
-      promptId: request.params.promptId,
+      projectId,
+      promptId,
+      toolSlug,
       authType: request.apiKey ? "api_key" : "user",
       statusCode,
       errorCode,
