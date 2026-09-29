@@ -1,6 +1,10 @@
 import type { FastifyRequest } from "fastify";
 
-export type RuntimeOperation = "get_live_prompt" | "render_live_prompt" | "list_tools";
+export type RuntimeOperation =
+  | "get_live_prompt"
+  | "render_live_prompt"
+  | "list_tools"
+  | "get_tool";
 
 type RuntimeResourceIdentity = {
   projectId: string;

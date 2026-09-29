@@ -62,6 +62,10 @@ export function getRuntimeErrorDetails(error: unknown): { statusCode: number; er
     return { statusCode: 404, errorCode: "TAG_VERSION_NOT_FOUND" };
   }
 
+  if (error instanceof ToolNotFoundError) {
+    return { statusCode: 404, errorCode: "TOOL_NOT_FOUND" };
+  }
+
   return { statusCode: 500, errorCode: "RUNTIME_OPERATION_FAILED" };
 }
 
