@@ -65,6 +65,14 @@ export type RuntimeToolListResult = {
   tools: Tool[];
 };
 
+export type RuntimeToolGetResult = {
+  tool: Tool;
+};
+
 export type ListToolsOptions = {
+  signal?: AbortSignal;
+};
+
+export type GetToolOptions = {
   signal?: AbortSignal;
 };

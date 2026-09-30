@@ -1,6 +1,11 @@
 import { request } from "../http.js";
 import type { RequestContext } from "../http.js";
-import type { ListToolsOptions, RuntimeToolListResult } from "../types.js";
+import type {
+  GetToolOptions,
+  ListToolsOptions,
+  RuntimeToolGetResult,
+  RuntimeToolListResult,
+} from "../types.js";
 
 export class ToolResource {
   constructor(
@@ -13,6 +18,17 @@ export class ToolResource {
       method: "GET",
       signal: options.signal,
     });
+  }
+
+  get(toolSlug: string, options: GetToolOptions = {}): Promise<RuntimeToolGetResult> {
+    return request<RuntimeToolGetResult>(
+      this.context,
+      `${this.projectPath()}/${encodeURIComponent(toolSlug)}`,
+      {
+        method: "GET",
+        signal: options.signal,
+      },
+    );
   }
 
   private projectPath(): string {

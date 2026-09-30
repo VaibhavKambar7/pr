@@ -3,11 +3,13 @@ import { ToolResource } from "./resources/tools.js";
 import type { RequestContext } from "./http.js";
 import type {
   GetPromptOptions,
+  GetToolOptions,
   ListToolsOptions,
   RenderPromptInput,
   RuntimeGetResult,
   RuntimeRenderResult,
   RuntimeToolListResult,
+  RuntimeToolGetResult,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
@@ -81,5 +83,9 @@ export class PrClient {
 
   listTools(options: ListToolsOptions = {}): Promise<RuntimeToolListResult> {
     return this.tools.list(options);
+  }
+
+  fetchTool(toolSlug: string, options: GetToolOptions = {}): Promise<RuntimeToolGetResult> {
+    return this.tools.get(toolSlug, options);
   }
 }
