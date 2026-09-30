@@ -16,6 +16,8 @@ export {
 export type { PrErrorIssue, PrErrorOptions } from "./errors.js";
 
 export type {
+  GetPromptOptions,
+  ListToolsOptions,
   Prompt,
   PromptVariableValue,
   PromptVariables,
@@ -23,6 +25,7 @@ export type {
   PromptVersionStatus,
   RuntimeGetResult,
   RuntimeRenderResult,
-  GetPromptOptions,
+  RuntimeToolListResult,
   RenderPromptInput,
+  Tool,
 } from "./types.js";

@@ -1,10 +1,13 @@
 import { RuntimeResource } from "./resources/runtime.js";
+import { ToolResource } from "./resources/tools.js";
 import type { RequestContext } from "./http.js";
 import type {
   GetPromptOptions,
+  ListToolsOptions,
   RenderPromptInput,
   RuntimeGetResult,
   RuntimeRenderResult,
+  RuntimeToolListResult,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
@@ -50,6 +53,7 @@ function validateOptions(options: PrClientOptions): void {
 
 export class PrClient {
   readonly runtime: RuntimeResource;
+  readonly tools: ToolResource;
 
   private readonly context: RequestContext;
 
@@ -64,6 +68,7 @@ export class PrClient {
     };
 
     this.runtime = new RuntimeResource(this.context, options.projectId);
+    this.tools = new ToolResource(this.context, options.projectId);
   }
 
   fetchPrompt(promptId: string, options: GetPromptOptions = {}): Promise<RuntimeGetResult> {
@@ -72,5 +77,9 @@ export class PrClient {
 
   renderPrompt(promptId: string, input: RenderPromptInput): Promise<RuntimeRenderResult> {
     return this.runtime.render(promptId, input);
+  }
+
+  listTools(options: ListToolsOptions = {}): Promise<RuntimeToolListResult> {
+    return this.tools.list(options);
   }
 }

@@ -49,3 +49,22 @@ export type RenderPromptInput = {
   tag?: string;
   signal?: AbortSignal;
 };
+
+export type Tool = {
+  id: string;
+  projectId: string;
+  name: string;
+  slug: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RuntimeToolListResult = {
+  tools: Tool[];
+};
+
+export type ListToolsOptions = {
+  signal?: AbortSignal;
+};
