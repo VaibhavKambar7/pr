@@ -1,9 +1,26 @@
+import Ajv from "ajv";
 import { z } from "zod";
 
-const toolInputSchema = z.record(z.string(), z.unknown()).refine(
-  (schema) => schema.type === "object",
-  { message: 'tool input schema root type must be "object"' },
-);
+const ajv = new Ajv({ allErrors: true, strict: false });
+
+const toolInputSchema = z.record(z.string(), z.unknown()).superRefine((schema, context) => {
+  if (schema.type !== "object") {
+    context.addIssue({
+      code: "custom",
+      message: 'tool input schema root type must be "object"',
+    });
+    return;
+  }
+
+  try {
+    ajv.compile(schema);
+  } catch (error) {
+    context.addIssue({
+      code: "custom",
+      message: error instanceof Error ? `invalid JSON Schema: ${error.message}` : "invalid JSON Schema",
+    });
+  }
+});
 
 export const createToolSchema = z
   .object({
