@@ -1,4 +1,4 @@
-import { AuditAction, prisma, type Prisma } from "@pr/database";
+import { AuditAction, Prisma, prisma } from "@pr/database";
 import type { CreateToolInput, UpdateToolInput } from "./tool.schema.js";
 
 type CreateToolRecordInput = CreateToolInput & {
@@ -13,6 +13,10 @@ type ToolAuditSnapshot = {
   description: string;
   inputSchema: Prisma.JsonValue;
 };
+
+export function isToolUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
 
 function toToolAuditSnapshot(tool: ToolAuditSnapshot): Prisma.InputJsonObject {
   return {

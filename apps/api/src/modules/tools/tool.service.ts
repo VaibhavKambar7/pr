@@ -4,6 +4,7 @@ import {
   deleteTool,
   findToolById,
   findToolBySlug,
+  isToolUniqueConstraintError,
   listToolsByProject,
   updateTool,
 } from "./tool.repository.js";
@@ -46,7 +47,15 @@ export async function createToolForProject(
     throw new ToolConflictError();
   }
 
-  return createTool({ ...input, projectId, ownerId, slug });
+  try {
+    return await createTool({ ...input, projectId, ownerId, slug });
+  } catch (error) {
+    if (isToolUniqueConstraintError(error)) {
+      throw new ToolConflictError();
+    }
+
+    throw error;
+  }
 }
 
 export async function listToolsForProject(ownerId: string, projectId: string) {
@@ -90,7 +99,17 @@ export async function updateToolForProject(
     }
   }
 
-  const result = await updateTool(projectId, toolId, ownerId, { ...input, slug });
+  let result: Awaited<ReturnType<typeof updateTool>>;
+
+  try {
+    result = await updateTool(projectId, toolId, ownerId, { ...input, slug });
+  } catch (error) {
+    if (isToolUniqueConstraintError(error)) {
+      throw new ToolConflictError();
+    }
+
+    throw error;
+  }
 
   if (result.count === 0) {
     throw new ToolNotFoundError();
