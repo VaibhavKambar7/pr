@@ -15,6 +15,7 @@ import {
   createPrompt,
   createPromptVersion,
   createProject,
+  createTool,
   getExecution,
   listAuditEvents,
   listApiKeys,
@@ -70,6 +71,11 @@ const DEFAULT_MODEL_PARAMS = `{
 }`;
 
 const EMPTY_PREVIEW_VARIABLES = "{}";
+const DEFAULT_TOOL_INPUT_SCHEMA = `{
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}`;
 
 function isPreviewVariableValue(value: unknown): value is string | number | boolean | null {
   return value === null || ["string", "number", "boolean"].includes(typeof value);
@@ -234,6 +240,13 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
 
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoadingTools, setIsLoadingTools] = useState(false);
+  const [isToolComposerOpen, setIsToolComposerOpen] = useState(false);
+  const [toolName, setToolName] = useState("");
+  const [toolSlug, setToolSlug] = useState("");
+  const [toolDescription, setToolDescription] = useState("");
+  const [toolInputSchema, setToolInputSchema] = useState(DEFAULT_TOOL_INPUT_SCHEMA);
+  const [isCreatingTool, setIsCreatingTool] = useState(false);
+  const [toolError, setToolError] = useState<string | null>(null);
 
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [previewVariables, setPreviewVariables] = useState(EMPTY_PREVIEW_VARIABLES);
@@ -651,8 +664,17 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setProjectMenuOpen(false);
     setIsPromptComposerOpen(false);
     setIsVersionComposerOpen(false);
+    setIsToolComposerOpen(false);
     setComparingVersion(null);
     setActiveTab("versions");
+  }
+
+  function resetToolFields() {
+    setToolName("");
+    setToolSlug("");
+    setToolDescription("");
+    setToolInputSchema(DEFAULT_TOOL_INPUT_SCHEMA);
+    setToolError(null);
   }
 
   function handleSelectPrompt(promptId: string) {
@@ -750,6 +772,59 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       setPromptError(errorMessage(error, "Failed to create prompt"));
     } finally {
       setIsCreatingPrompt(false);
+    }
+  }
+
+  async function handleCreateTool(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProjectId) {
+      setToolError("Create a project first.");
+      return;
+    }
+
+    let name: string;
+    let slug: string | undefined;
+    let inputSchema: Record<string, unknown>;
+    const description = toolDescription.trim();
+
+    try {
+      name = validateName(toolName, "tool name");
+      slug = validateOptionalSlug(toolSlug);
+      const parsedInputSchema = parseJsonObject(toolInputSchema, "tool input schema");
+
+      if (!parsedInputSchema) {
+        throw new Error("tool input schema is required");
+      }
+
+      inputSchema = parsedInputSchema;
+
+      if (!description) {
+        throw new Error("tool description is required");
+      }
+    } catch (error) {
+      setToolError(errorMessage(error, "Invalid tool input"));
+      return;
+    }
+
+    setIsCreatingTool(true);
+    setToolError(null);
+
+    try {
+      const result = await createTool(accessToken, selectedProjectId, {
+        name,
+        slug,
+        description,
+        inputSchema,
+      });
+      setTools((current) => [result.tool, ...current]);
+      setIsToolComposerOpen(false);
+      resetToolFields();
+      void loadAuditEvents(selectedProjectId);
+    } catch (error) {
+      setToolError(errorMessage(error, "Failed to create tool"));
+    } finally {
+      setIsCreatingTool(false);
     }
   }
 
@@ -1375,8 +1450,91 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                 <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                   Tools
                 </p>
-                <Badge variant="outline">{tools.length}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline">{tools.length}</Badge>
+                  <button
+                    aria-label="New tool"
+                    className="grid size-5 place-items-center rounded-md border text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setIsToolComposerOpen((open) => !open);
+                      setToolError(null);
+                    }}
+                    title="New tool"
+                    type="button"
+                  >
+                    <Plus className="size-3" />
+                  </button>
+                </div>
               </div>
+              {isToolComposerOpen ? (
+                <form className="mb-2 grid gap-2.5 rounded-xl border bg-card p-3" onSubmit={handleCreateTool}>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="console-tool-name">Name</Label>
+                    <Input
+                      disabled={isCreatingTool}
+                      id="console-tool-name"
+                      minLength={2}
+                      onChange={(event) => setToolName(event.target.value)}
+                      placeholder="Get weather"
+                      required
+                      value={toolName}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="console-tool-slug">Slug optional</Label>
+                    <Input
+                      disabled={isCreatingTool}
+                      id="console-tool-slug"
+                      onChange={(event) => setToolSlug(event.target.value)}
+                      placeholder="get-weather"
+                      value={toolSlug}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="console-tool-description">Description</Label>
+                    <Textarea
+                      disabled={isCreatingTool}
+                      id="console-tool-description"
+                      maxLength={1000}
+                      onChange={(event) => setToolDescription(event.target.value)}
+                      required
+                      rows={2}
+                      value={toolDescription}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="console-tool-schema">Input schema</Label>
+                    <Textarea
+                      className="font-mono text-xs"
+                      disabled={isCreatingTool}
+                      id="console-tool-schema"
+                      onChange={(event) => setToolInputSchema(event.target.value)}
+                      required
+                      rows={7}
+                      value={toolInputSchema}
+                    />
+                  </div>
+                  {toolError ? (
+                    <p className="font-mono text-xs text-destructive">{toolError}</p>
+                  ) : null}
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      onClick={() => {
+                        setIsToolComposerOpen(false);
+                        resetToolFields();
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      Cancel
+                    </Button>
+                    <Button disabled={isCreatingTool} size="sm" type="submit">
+                      {isCreatingTool ? "Creating..." : "Register"}
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
               <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                 {tools.map((tool) => {
                   const properties = tool.inputSchema.properties;

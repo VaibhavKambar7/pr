@@ -75,6 +75,13 @@ type CreateApiKeyInput = {
   name: string;
 };
 
+type CreateToolInput = {
+  name: string;
+  slug?: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+};
+
 export type Prompt = {
   id: string;
   projectId: string;
@@ -430,6 +437,13 @@ export function createApiKey(accessToken: string, projectId: string, input: Crea
 
 export function listTools(accessToken: string, projectId: string) {
   return requestWithAuth<{ tools: Tool[] }>(accessToken, `/projects/${projectId}/tools`);
+}
+
+export function createTool(accessToken: string, projectId: string, input: CreateToolInput) {
+  return requestWithAuth<{ tool: Tool }>(accessToken, `/projects/${projectId}/tools`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {
