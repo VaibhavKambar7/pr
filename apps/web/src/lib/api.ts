@@ -54,6 +54,17 @@ export type ApiKey = {
   revokedAt: string | null;
 };
 
+export type Tool = {
+  id: string;
+  projectId: string;
+  name: string;
+  slug: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type CreateProjectInput = {
   name: string;
   slug?: string;
@@ -415,6 +426,10 @@ export function createApiKey(accessToken: string, projectId: string, input: Crea
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function listTools(accessToken: string, projectId: string) {
+  return requestWithAuth<{ tools: Tool[] }>(accessToken, `/projects/${projectId}/tools`);
 }
 
 export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {

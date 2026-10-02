@@ -23,6 +23,7 @@ import {
   listPromptTags,
   listProjects,
   listPromptVersions,
+  listTools,
   previewPromptVersion,
   promotePromptVersion,
   removeVersionTag,
@@ -39,6 +40,7 @@ import {
   type PromptVersion,
   type PromptVersionTag,
   type Project,
+  type Tool,
 } from "@/lib/api";
 import { versionIdempotencyKey } from "@/lib/crypto";
 import { parseJsonObject, parseTemplateVariables } from "@/lib/json";
@@ -230,6 +232,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [revokingApiKeyId, setRevokingApiKeyId] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [isLoadingTools, setIsLoadingTools] = useState(false);
+
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [previewVariables, setPreviewVariables] = useState(EMPTY_PREVIEW_VARIABLES);
   const [previewResult, setPreviewResult] = useState<PromptPreviewResult | null>(null);
@@ -359,6 +364,41 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       } finally {
         if (isMounted) {
           setIsLoadingPrompts(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, selectedProjectId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!selectedProjectId) {
+      setTools([]);
+      return;
+    }
+
+    async function load() {
+      setIsLoadingTools(true);
+
+      try {
+        const result = await listTools(accessToken, selectedProjectId as string);
+
+        if (isMounted) {
+          setTools(result.tools);
+        }
+      } catch {
+        if (isMounted) {
+          setTools([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingTools(false);
         }
       }
     }
@@ -1325,6 +1365,44 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                 {isLoadingPrompts ? (
                   <li className="px-2.5 py-2 font-mono text-[11px] text-muted-foreground">
                     Loading prompts...
+                  </li>
+                ) : null}
+              </ul>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between px-2 pb-1.5">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Tools
+                </p>
+                <Badge variant="outline">{tools.length}</Badge>
+              </div>
+              <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+                {tools.map((tool) => {
+                  const properties = tool.inputSchema.properties;
+                  const inputCount =
+                    properties && typeof properties === "object" && !Array.isArray(properties)
+                      ? Object.keys(properties).length
+                      : 0;
+
+                  return (
+                    <li className="grid gap-0.5 rounded-lg px-2.5 py-2 hover:bg-accent" key={tool.id}>
+                      <span className="truncate font-mono text-[13px]">{tool.name}</span>
+                      <span className="truncate font-mono text-[11px] text-muted-foreground">
+                        {tool.slug} · {inputCount} {inputCount === 1 ? "input" : "inputs"}
+                      </span>
+                      <span className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                        {tool.description}
+                      </span>
+                    </li>
+                  );
+                })}
+                {!isLoadingTools && tools.length === 0 ? (
+                  <li className="px-2.5 py-2 text-xs text-muted-foreground">No tools registered.</li>
+                ) : null}
+                {isLoadingTools ? (
+                  <li className="px-2.5 py-2 font-mono text-[11px] text-muted-foreground">
+                    Loading tools...
                   </li>
                 ) : null}
               </ul>
