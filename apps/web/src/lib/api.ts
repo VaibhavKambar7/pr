@@ -446,6 +446,12 @@ export function createTool(accessToken: string, projectId: string, input: Create
   });
 }
 
+export function deleteTool(accessToken: string, projectId: string, toolId: string) {
+  return requestWithAuth<void>(accessToken, `/projects/${projectId}/tools/${toolId}`, {
+    method: "DELETE",
+  });
+}
+
 export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {
   return requestWithAuth<void>(accessToken, `/projects/${projectId}/api-keys/${apiKeyId}`, {
     method: "DELETE",

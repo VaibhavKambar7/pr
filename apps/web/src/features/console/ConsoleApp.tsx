@@ -16,6 +16,7 @@ import {
   createPromptVersion,
   createProject,
   createTool,
+  deleteTool,
   getExecution,
   listAuditEvents,
   listApiKeys,
@@ -246,6 +247,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [toolDescription, setToolDescription] = useState("");
   const [toolInputSchema, setToolInputSchema] = useState(DEFAULT_TOOL_INPUT_SCHEMA);
   const [isCreatingTool, setIsCreatingTool] = useState(false);
+  const [deletingToolId, setDeletingToolId] = useState<string | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
 
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
@@ -825,6 +827,25 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       setToolError(errorMessage(error, "Failed to create tool"));
     } finally {
       setIsCreatingTool(false);
+    }
+  }
+
+  async function handleDeleteTool(tool: Tool) {
+    if (!selectedProjectId || !window.confirm(`Delete tool "${tool.name}"?`)) {
+      return;
+    }
+
+    setDeletingToolId(tool.id);
+    setToolError(null);
+
+    try {
+      await deleteTool(accessToken, selectedProjectId, tool.id);
+      setTools((current) => current.filter((item) => item.id !== tool.id));
+      void loadAuditEvents(selectedProjectId);
+    } catch (error) {
+      setToolError(errorMessage(error, "Failed to delete tool"));
+    } finally {
+      setDeletingToolId(null);
     }
   }
 
@@ -1535,6 +1556,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                   </div>
                 </form>
               ) : null}
+              {!isToolComposerOpen && toolError ? (
+                <p className="px-2.5 pb-2 font-mono text-xs text-destructive">{toolError}</p>
+              ) : null}
               <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                 {tools.map((tool) => {
                   const properties = tool.inputSchema.properties;
@@ -1544,14 +1568,29 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                       : 0;
 
                   return (
-                    <li className="grid gap-0.5 rounded-lg px-2.5 py-2 hover:bg-accent" key={tool.id}>
-                      <span className="truncate font-mono text-[13px]">{tool.name}</span>
-                      <span className="truncate font-mono text-[11px] text-muted-foreground">
-                        {tool.slug} · {inputCount} {inputCount === 1 ? "input" : "inputs"}
-                      </span>
-                      <span className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                        {tool.description}
-                      </span>
+                    <li
+                      className="group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg px-2.5 py-2 hover:bg-accent"
+                      key={tool.id}
+                    >
+                      <div className="grid min-w-0 gap-0.5">
+                        <span className="truncate font-mono text-[13px]">{tool.name}</span>
+                        <span className="truncate font-mono text-[11px] text-muted-foreground">
+                          {tool.slug} · {inputCount} {inputCount === 1 ? "input" : "inputs"}
+                        </span>
+                        <span className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                          {tool.description}
+                        </span>
+                      </div>
+                      <button
+                        aria-label={`Delete ${tool.name}`}
+                        className="grid size-[22px] place-items-center rounded-md text-xs text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                        disabled={deletingToolId === tool.id}
+                        onClick={() => void handleDeleteTool(tool)}
+                        title="Delete tool"
+                        type="button"
+                      >
+                        ✕
+                      </button>
                     </li>
                   );
                 })}
