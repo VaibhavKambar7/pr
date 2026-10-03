@@ -82,6 +82,8 @@ type CreateToolInput = {
   inputSchema: Record<string, unknown>;
 };
 
+type UpdateToolInput = Partial<CreateToolInput>;
+
 export type Prompt = {
   id: string;
   projectId: string;
@@ -449,6 +451,18 @@ export function createTool(accessToken: string, projectId: string, input: Create
 export function deleteTool(accessToken: string, projectId: string, toolId: string) {
   return requestWithAuth<void>(accessToken, `/projects/${projectId}/tools/${toolId}`, {
     method: "DELETE",
+  });
+}
+
+export function updateTool(
+  accessToken: string,
+  projectId: string,
+  toolId: string,
+  input: UpdateToolInput,
+) {
+  return requestWithAuth<{ tool: Tool }>(accessToken, `/projects/${projectId}/tools/${toolId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
   });
 }
 

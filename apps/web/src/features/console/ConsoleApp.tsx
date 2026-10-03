@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Pencil, Plus } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { extractTemplateVariables } from "@pr/shared";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ import {
   revokeApiKey,
   rollbackPromptVersion,
   setVersionTag,
+  updateTool,
   type ApiKey,
   type AuditEventListItem,
   type AuthUser,
@@ -247,6 +248,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [toolDescription, setToolDescription] = useState("");
   const [toolInputSchema, setToolInputSchema] = useState(DEFAULT_TOOL_INPUT_SCHEMA);
   const [isCreatingTool, setIsCreatingTool] = useState(false);
+  const [editingToolId, setEditingToolId] = useState<string | null>(null);
   const [deletingToolId, setDeletingToolId] = useState<string | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
 
@@ -667,6 +669,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setIsPromptComposerOpen(false);
     setIsVersionComposerOpen(false);
     setIsToolComposerOpen(false);
+    resetToolFields();
     setComparingVersion(null);
     setActiveTab("versions");
   }
@@ -677,6 +680,17 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setToolDescription("");
     setToolInputSchema(DEFAULT_TOOL_INPUT_SCHEMA);
     setToolError(null);
+    setEditingToolId(null);
+  }
+
+  function handleEditTool(tool: Tool) {
+    setEditingToolId(tool.id);
+    setToolName(tool.name);
+    setToolSlug(tool.slug);
+    setToolDescription(tool.description);
+    setToolInputSchema(JSON.stringify(tool.inputSchema, null, 2));
+    setToolError(null);
+    setIsToolComposerOpen(true);
   }
 
   function handleSelectPrompt(promptId: string) {
@@ -813,18 +827,23 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setToolError(null);
 
     try {
-      const result = await createTool(accessToken, selectedProjectId, {
-        name,
-        slug,
-        description,
-        inputSchema,
-      });
-      setTools((current) => [result.tool, ...current]);
+      const toolInput = { name, slug, description, inputSchema };
+      const result = editingToolId
+        ? await updateTool(accessToken, selectedProjectId, editingToolId, toolInput)
+        : await createTool(accessToken, selectedProjectId, toolInput);
+
+      setTools((current) =>
+        editingToolId
+          ? current.map((tool) => (tool.id === editingToolId ? result.tool : tool))
+          : [result.tool, ...current],
+      );
       setIsToolComposerOpen(false);
       resetToolFields();
       void loadAuditEvents(selectedProjectId);
     } catch (error) {
-      setToolError(errorMessage(error, "Failed to create tool"));
+      setToolError(
+        errorMessage(error, editingToolId ? "Failed to update tool" : "Failed to create tool"),
+      );
     } finally {
       setIsCreatingTool(false);
     }
@@ -841,6 +860,11 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     try {
       await deleteTool(accessToken, selectedProjectId, tool.id);
       setTools((current) => current.filter((item) => item.id !== tool.id));
+
+      if (editingToolId === tool.id) {
+        setIsToolComposerOpen(false);
+        resetToolFields();
+      }
       void loadAuditEvents(selectedProjectId);
     } catch (error) {
       setToolError(errorMessage(error, "Failed to delete tool"));
@@ -1477,8 +1501,12 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                     aria-label="New tool"
                     className="grid size-5 place-items-center rounded-md border text-muted-foreground hover:text-foreground"
                     onClick={() => {
-                      setIsToolComposerOpen((open) => !open);
-                      setToolError(null);
+                      if (isToolComposerOpen && !editingToolId) {
+                        setIsToolComposerOpen(false);
+                      } else {
+                        resetToolFields();
+                        setIsToolComposerOpen(true);
+                      }
                     }}
                     title="New tool"
                     type="button"
@@ -1489,6 +1517,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
               </div>
               {isToolComposerOpen ? (
                 <form className="mb-2 grid gap-2.5 rounded-xl border bg-card p-3" onSubmit={handleCreateTool}>
+                  <p className="m-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    {editingToolId ? "Edit tool" : "Register tool"}
+                  </p>
                   <div className="grid gap-1.5">
                     <Label htmlFor="console-tool-name">Name</Label>
                     <Input
@@ -1551,7 +1582,13 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                       Cancel
                     </Button>
                     <Button disabled={isCreatingTool} size="sm" type="submit">
-                      {isCreatingTool ? "Creating..." : "Register"}
+                      {isCreatingTool
+                        ? editingToolId
+                          ? "Saving..."
+                          : "Creating..."
+                        : editingToolId
+                          ? "Save changes"
+                          : "Register"}
                     </Button>
                   </div>
                 </form>
@@ -1581,16 +1618,28 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                           {tool.description}
                         </span>
                       </div>
-                      <button
-                        aria-label={`Delete ${tool.name}`}
-                        className="grid size-[22px] place-items-center rounded-md text-xs text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
-                        disabled={deletingToolId === tool.id}
-                        onClick={() => void handleDeleteTool(tool)}
-                        title="Delete tool"
-                        type="button"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                        <button
+                          aria-label={`Edit ${tool.name}`}
+                          className="grid size-[22px] place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                          disabled={deletingToolId === tool.id}
+                          onClick={() => handleEditTool(tool)}
+                          title="Edit tool"
+                          type="button"
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                        <button
+                          aria-label={`Delete ${tool.name}`}
+                          className="grid size-[22px] place-items-center rounded-md text-xs text-muted-foreground hover:bg-background hover:text-destructive"
+                          disabled={deletingToolId === tool.id}
+                          onClick={() => void handleDeleteTool(tool)}
+                          title="Delete tool"
+                          type="button"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
