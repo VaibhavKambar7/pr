@@ -4,7 +4,8 @@ export type RuntimeOperation =
   | "get_live_prompt"
   | "render_live_prompt"
   | "list_tools"
-  | "get_tool";
+  | "get_tool"
+  | "validate_tool_input";
 
 type RuntimeResourceIdentity = {
   projectId: string;

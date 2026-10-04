@@ -17,3 +17,11 @@ export const runtimeQuerySchema = z
   .strict();
 
 export type RuntimeQueryInput = z.infer<typeof runtimeQuerySchema>;
+
+export const validateToolInputSchema = z
+  .object({
+    input: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
+export type ValidateToolInput = z.infer<typeof validateToolInputSchema>;

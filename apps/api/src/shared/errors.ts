@@ -18,6 +18,7 @@ import {
 } from "../modules/runtime/runtime.service.js";
 import { ToolConflictError, ToolNotFoundError } from "../modules/tools/tool.service.js";
 import { MissingTemplateVariableError, VariableValidationError } from "./prompt-rendering.js";
+import { ToolInputValidationError } from "./tool-input-validation.js";
 
 function sendStructuredError(
   reply: FastifyReply,
@@ -64,6 +65,10 @@ export function getRuntimeErrorDetails(error: unknown): { statusCode: number; er
 
   if (error instanceof ToolNotFoundError) {
     return { statusCode: 404, errorCode: "TOOL_NOT_FOUND" };
+  }
+
+  if (error instanceof ToolInputValidationError) {
+    return { statusCode: 400, errorCode: "TOOL_INPUT_VALIDATION_FAILED" };
   }
 
   return { statusCode: 500, errorCode: "RUNTIME_OPERATION_FAILED" };
@@ -170,7 +175,9 @@ export function sendRuntimeError(reply: FastifyReply, error: unknown) {
     details.statusCode,
     details.errorCode,
     error instanceof Error ? error.message : "runtime operation failed",
-    error instanceof VariableValidationError ? error.issues : undefined,
+    error instanceof VariableValidationError || error instanceof ToolInputValidationError
+      ? error.issues
+      : undefined,
   );
 }
 

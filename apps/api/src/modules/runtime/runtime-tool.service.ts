@@ -2,6 +2,7 @@ import { getProjectForUser } from "../projects/project.service.js";
 import { findToolBySlug, listToolsByProject } from "../tools/tool.repository.js";
 import { ToolNotFoundError } from "../tools/tool.service.js";
 import { RuntimeProjectAccessError, type RuntimeAuthContext } from "./runtime.service.js";
+import { validateToolInput } from "../../shared/tool-input-validation.js";
 
 async function ensureRuntimeProjectAccess(context: RuntimeAuthContext, projectId: string) {
   if (context.type === "apiKey") {
@@ -34,4 +35,19 @@ export async function getRuntimeTool(
   }
 
   return tool;
+}
+
+export async function validateRuntimeToolInput(
+  context: RuntimeAuthContext,
+  projectId: string,
+  toolSlug: string,
+  input: Record<string, unknown>,
+) {
+  const tool = await getRuntimeTool(context, projectId, toolSlug);
+  validateToolInput(tool.inputSchema as Record<string, unknown>, input);
+
+  return {
+    tool,
+    valid: true as const,
+  };
 }
