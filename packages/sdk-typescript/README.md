@@ -26,6 +26,8 @@ try {
   if (tools[0]) {
     const { tool } = await client.fetchTool(tools[0].slug);
     console.log(`${tool.name}: ${tool.description}`);
+
+    await client.validateToolInput(tool.slug, { customer_id: "cus_123" });
   }
 
   const result = await client.renderPrompt(promptId, {
@@ -42,7 +44,7 @@ try {
 }
 ```
 
-`fetchPrompt()` fetches the live prompt version; `renderPrompt()` validates variables and renders it on the server. Both methods also accept an optional `tag` to select a tagged version. `listTools()` returns the project's registered tool definitions, and `fetchTool()` retrieves one by slug. Rendering creates an execution-history record.
+`fetchPrompt()` fetches the live prompt version; `renderPrompt()` validates variables and renders it on the server. Both methods also accept an optional `tag` to select a tagged version. `listTools()` returns the project's registered tool definitions, `fetchTool()` retrieves one by slug, and `validateToolInput()` checks arguments against its JSON Schema. Rendering creates an execution-history record.
 
 The existing `client.runtime.get()` and `client.runtime.render()` methods remain available. Set `PR_API_KEY` to a project-level API key and `PR_PROMPT_ID` to the prompt's ID (not its slug). Keep the API key on the server; never expose it in browser code.
 

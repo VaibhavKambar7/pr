@@ -28,6 +28,9 @@ export type {
   RuntimeRenderResult,
   RuntimeToolListResult,
   RuntimeToolGetResult,
+  RuntimeToolValidationResult,
   RenderPromptInput,
   Tool,
+  ToolInput,
+  ValidateToolInputOptions,
 } from "./types.js";

@@ -10,6 +10,9 @@ import type {
   RuntimeRenderResult,
   RuntimeToolListResult,
   RuntimeToolGetResult,
+  RuntimeToolValidationResult,
+  ToolInput,
+  ValidateToolInputOptions,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:3001";
@@ -87,5 +90,13 @@ export class PrClient {
 
   fetchTool(toolSlug: string, options: GetToolOptions = {}): Promise<RuntimeToolGetResult> {
     return this.tools.get(toolSlug, options);
+  }
+
+  validateToolInput(
+    toolSlug: string,
+    input: ToolInput,
+    options: ValidateToolInputOptions = {},
+  ): Promise<RuntimeToolValidationResult> {
+    return this.tools.validate(toolSlug, input, options);
   }
 }

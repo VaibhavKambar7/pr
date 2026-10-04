@@ -69,6 +69,11 @@ export type RuntimeToolGetResult = {
   tool: Tool;
 };
 
+export type RuntimeToolValidationResult = {
+  tool: Tool;
+  valid: true;
+};
+
 export type ListToolsOptions = {
   signal?: AbortSignal;
 };
@@ -76,3 +81,9 @@ export type ListToolsOptions = {
 export type GetToolOptions = {
   signal?: AbortSignal;
 };
+
+export type ValidateToolInputOptions = {
+  signal?: AbortSignal;
+};
+
+export type ToolInput = Record<string, unknown>;

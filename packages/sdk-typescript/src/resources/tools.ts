@@ -5,6 +5,9 @@ import type {
   ListToolsOptions,
   RuntimeToolGetResult,
   RuntimeToolListResult,
+  RuntimeToolValidationResult,
+  ToolInput,
+  ValidateToolInputOptions,
 } from "../types.js";
 
 export class ToolResource {
@@ -26,6 +29,22 @@ export class ToolResource {
       `${this.projectPath()}/${encodeURIComponent(toolSlug)}`,
       {
         method: "GET",
+        signal: options.signal,
+      },
+    );
+  }
+
+  validate(
+    toolSlug: string,
+    input: ToolInput,
+    options: ValidateToolInputOptions = {},
+  ): Promise<RuntimeToolValidationResult> {
+    return request<RuntimeToolValidationResult>(
+      this.context,
+      `${this.projectPath()}/${encodeURIComponent(toolSlug)}/validate`,
+      {
+        method: "POST",
+        body: { input },
         signal: options.signal,
       },
     );
