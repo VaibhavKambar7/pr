@@ -83,7 +83,9 @@ type CreateToolInput = {
   inputSchema: Record<string, unknown>;
 };
 
-type UpdateToolInput = Partial<CreateToolInput>;
+type UpdateToolInput = Partial<CreateToolInput> & {
+  enabled?: boolean;
+};
 
 export type Prompt = {
   id: string;

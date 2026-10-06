@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Pencil, Plus } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Power } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { extractTemplateVariables } from "@pr/shared";
 import { Badge } from "@/components/ui/badge";
@@ -250,6 +250,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [isCreatingTool, setIsCreatingTool] = useState(false);
   const [editingToolId, setEditingToolId] = useState<string | null>(null);
   const [deletingToolId, setDeletingToolId] = useState<string | null>(null);
+  const [togglingToolId, setTogglingToolId] = useState<string | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
 
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
@@ -870,6 +871,31 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       setToolError(errorMessage(error, "Failed to delete tool"));
     } finally {
       setDeletingToolId(null);
+    }
+  }
+
+  async function handleToggleTool(tool: Tool) {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    setTogglingToolId(tool.id);
+    setToolError(null);
+
+    try {
+      const result = await updateTool(accessToken, selectedProjectId, tool.id, {
+        enabled: !tool.enabled,
+      });
+      setTools((current) =>
+        current.map((item) => (item.id === tool.id ? result.tool : item)),
+      );
+      void loadAuditEvents(selectedProjectId);
+    } catch (error) {
+      setToolError(
+        errorMessage(error, `Failed to ${tool.enabled ? "disable" : "enable"} tool`),
+      );
+    } finally {
+      setTogglingToolId(null);
     }
   }
 
@@ -1496,7 +1522,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                   Tools
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <Badge variant="outline">{tools.length}</Badge>
+                  <Badge variant="outline">
+                    {tools.filter((tool) => tool.enabled).length}/{tools.length} enabled
+                  </Badge>
                   <button
                     aria-label="New tool"
                     className="grid size-5 place-items-center rounded-md border text-muted-foreground hover:text-foreground"
@@ -1606,13 +1634,17 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
 
                   return (
                     <li
-                      className="group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg px-2.5 py-2 hover:bg-accent"
+                      className={cn(
+                        "group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-lg px-2.5 py-2 hover:bg-accent",
+                        !tool.enabled && "opacity-55",
+                      )}
                       key={tool.id}
                     >
                       <div className="grid min-w-0 gap-0.5">
                         <span className="truncate font-mono text-[13px]">{tool.name}</span>
                         <span className="truncate font-mono text-[11px] text-muted-foreground">
-                          {tool.slug} · {inputCount} {inputCount === 1 ? "input" : "inputs"}
+                          {tool.slug} · {tool.enabled ? "enabled" : "disabled"} · {inputCount}{" "}
+                          {inputCount === 1 ? "input" : "inputs"}
                         </span>
                         <span className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
                           {tool.description}
@@ -1620,9 +1652,23 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                       </div>
                       <div className="flex opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
                         <button
+                          aria-label={`${tool.enabled ? "Disable" : "Enable"} ${tool.name}`}
+                          className="grid size-[22px] place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                          disabled={
+                            deletingToolId === tool.id || togglingToolId === tool.id
+                          }
+                          onClick={() => void handleToggleTool(tool)}
+                          title={tool.enabled ? "Disable tool" : "Enable tool"}
+                          type="button"
+                        >
+                          <Power className="size-3" />
+                        </button>
+                        <button
                           aria-label={`Edit ${tool.name}`}
                           className="grid size-[22px] place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
-                          disabled={deletingToolId === tool.id}
+                          disabled={
+                            deletingToolId === tool.id || togglingToolId === tool.id
+                          }
                           onClick={() => handleEditTool(tool)}
                           title="Edit tool"
                           type="button"
@@ -1632,7 +1678,9 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                         <button
                           aria-label={`Delete ${tool.name}`}
                           className="grid size-[22px] place-items-center rounded-md text-xs text-muted-foreground hover:bg-background hover:text-destructive"
-                          disabled={deletingToolId === tool.id}
+                          disabled={
+                            deletingToolId === tool.id || togglingToolId === tool.id
+                          }
                           onClick={() => void handleDeleteTool(tool)}
                           title="Delete tool"
                           type="button"
