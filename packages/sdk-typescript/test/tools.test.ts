@@ -8,6 +8,7 @@ const tool = {
   slug: "weather/current",
   description: "Get the current weather",
   inputSchema: { type: "object", properties: { city: { type: "string" } } },
+  enabled: true,
   createdAt: "2026-10-05T00:00:00.000Z",
   updatedAt: "2026-10-05T00:00:00.000Z",
 };

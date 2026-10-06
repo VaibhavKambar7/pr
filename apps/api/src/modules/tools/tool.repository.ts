@@ -12,6 +12,7 @@ type ToolAuditSnapshot = {
   slug: string;
   description: string;
   inputSchema: Prisma.JsonValue;
+  enabled: boolean;
 };
 
 export function isToolUniqueConstraintError(error: unknown): boolean {
@@ -24,6 +25,7 @@ function toToolAuditSnapshot(tool: ToolAuditSnapshot): Prisma.InputJsonObject {
     slug: tool.slug,
     description: tool.description,
     inputSchema: tool.inputSchema as Prisma.InputJsonValue,
+    enabled: tool.enabled,
   };
 }
 
@@ -87,6 +89,16 @@ export async function findToolBySlug(projectId: string, slug: string) {
   });
 }
 
+export async function findEnabledToolBySlug(projectId: string, slug: string) {
+  return prisma.tool.findFirst({
+    where: {
+      projectId,
+      slug,
+      enabled: true,
+    },
+  });
+}
+
 export async function findToolById(projectId: string, toolId: string) {
   return prisma.tool.findFirst({
     where: {
@@ -118,6 +130,7 @@ export async function updateTool(
         slug: input.slug,
         description: input.description,
         inputSchema: input.inputSchema as Prisma.InputJsonValue | undefined,
+        enabled: input.enabled,
       },
     });
 
@@ -162,6 +175,16 @@ export async function deleteTool(projectId: string, toolId: string, ownerId: str
 export async function listToolsByProject(projectId: string) {
   return prisma.tool.findMany({
     where: { projectId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function listEnabledToolsByProject(projectId: string) {
+  return prisma.tool.findMany({
+    where: {
+      projectId,
+      enabled: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 }

@@ -57,6 +57,7 @@ export type Tool = {
   slug: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  enabled: boolean;
   createdAt: string;
   updatedAt: string;
 };

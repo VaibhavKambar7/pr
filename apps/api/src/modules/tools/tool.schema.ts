@@ -37,6 +37,7 @@ export const updateToolSchema = z
     slug: z.string().trim().min(2).max(80).optional(),
     description: z.string().trim().min(1).max(1_000).optional(),
     inputSchema: toolInputSchema.optional(),
+    enabled: z.boolean().optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {

@@ -1,5 +1,8 @@
 import { getProjectForUser } from "../projects/project.service.js";
-import { findToolBySlug, listToolsByProject } from "../tools/tool.repository.js";
+import {
+  findEnabledToolBySlug,
+  listEnabledToolsByProject,
+} from "../tools/tool.repository.js";
 import { ToolNotFoundError } from "../tools/tool.service.js";
 import { RuntimeProjectAccessError, type RuntimeAuthContext } from "./runtime.service.js";
 import { validateToolInput } from "../../shared/tool-input-validation.js";
@@ -18,7 +21,7 @@ async function ensureRuntimeProjectAccess(context: RuntimeAuthContext, projectId
 
 export async function listRuntimeTools(context: RuntimeAuthContext, projectId: string) {
   await ensureRuntimeProjectAccess(context, projectId);
-  return listToolsByProject(projectId);
+  return listEnabledToolsByProject(projectId);
 }
 
 export async function getRuntimeTool(
@@ -28,7 +31,7 @@ export async function getRuntimeTool(
 ) {
   await ensureRuntimeProjectAccess(context, projectId);
 
-  const tool = await findToolBySlug(projectId, toolSlug);
+  const tool = await findEnabledToolBySlug(projectId, toolSlug);
 
   if (!tool) {
     throw new ToolNotFoundError();
