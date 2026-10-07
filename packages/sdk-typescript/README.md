@@ -48,4 +48,19 @@ try {
 
 The existing `client.runtime.get()` and `client.runtime.render()` methods remain available. Set `PR_API_KEY` to a project-level API key and `PR_PROMPT_ID` to the prompt's ID (not its slug). Keep the API key on the server; never expose it in browser code.
 
-From the repository root, run `npm run build:sdk` and `npm run typecheck:sdk`. See [the runnable example](./examples/basic.ts) for a complete script.
+From the repository root, run `npm run build:sdk` and `npm run typecheck:sdk`.
+
+- [Prompt fetch and render example](./examples/basic.ts)
+- [Tool discovery and validation example](./examples/tools.ts)
+
+The tool example accepts JSON through `PR_TOOL_INPUT`:
+
+```bash
+PR_API_KEY=pr_live_... \
+PR_PROJECT_ID=project-id \
+PR_TOOL_SLUG=get-weather \
+PR_TOOL_INPUT='{"city":"Bengaluru","units":"metric"}' \
+npx tsx packages/sdk-typescript/examples/tools.ts
+```
+
+Tool methods only discover definitions and validate arguments. They do not execute external tools.

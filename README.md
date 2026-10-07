@@ -19,10 +19,18 @@ Teams can use Pr to update live prompts safely, validate runtime variables, expo
 - Fetch or render the active prompt version from another application.
 - Use API keys for application access.
 - Validate runtime variables with JSON Schema before rendering.
+- Discover enabled tools and validate tool arguments from application code.
+
+### Tool Registry
+
+- Register project-level tool definitions with a name, stable slug, description, and JSON Schema.
+- Update, enable, disable, and delete tools from the authenticated dashboard.
+- Expose enabled definitions through the API-key-authenticated runtime API and TypeScript SDK.
+- Validate proposed tool arguments without executing external code.
 
 ### Admin Dashboard
 
-- Manage projects, prompts, versions, API keys, runtime rendering, and execution history from a Next.js console.
+- Manage projects, prompts, versions, API keys, tool definitions, runtime rendering, and execution history from a Next.js console.
 
 ## Tech Stack
 
@@ -87,19 +95,35 @@ apps/
 
 packages/
   database/   Prisma schema and client
+  sdk-typescript/ TypeScript runtime client
   shared/     Shared prompt/schema utilities
 ```
 
 ## Current Scope
 
-Pr focuses on core prompt infrastructure: registry, versioning, runtime delivery, API keys, schema validation, and execution history.
+Pr focuses on core prompt infrastructure: registry, versioning, runtime delivery, API keys, schema validation, tool discovery, and execution history.
+
+## Tool Registry Workflow
+
+An owner registers a tool in a project and defines its expected arguments with JSON Schema. The dashboard can validate sample JSON while an external application can discover the same enabled definition through a project API key.
+
+Runtime endpoints:
+
+```txt
+GET  /runtime/projects/:projectId/tools
+GET  /runtime/projects/:projectId/tools/:toolSlug
+POST /runtime/projects/:projectId/tools/:toolSlug/validate
+```
+
+The V1 registry is deliberately a definition and validation layer. It does not call third-party services or execute tools. Secure credentials, outbound execution adapters, SSRF controls, retries, and execution history belong to a later execution layer.
+
+See the [TypeScript SDK guide](./packages/sdk-typescript/README.md) and [tool registry example](./packages/sdk-typescript/examples/tools.ts).
 
 ## Upcoming Features
 
-- Tool registry
 - MCP server
 - Team RBAC
 - Multi-provider routing
-- Prompt playground
+- Secure tool execution adapters
 - Evaluations
-- Observability
+- Production metrics and tracing
