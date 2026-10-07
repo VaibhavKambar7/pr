@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Pencil, Plus, Power } from "lucide-react";
+import { Braces, ChevronDown, Pencil, Plus, Power } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { extractTemplateVariables } from "@pr/shared";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import {
   rollbackPromptVersion,
   setVersionTag,
   updateTool,
+  validateToolInput,
   type ApiKey,
   type AuditEventListItem,
   type AuthUser,
@@ -252,6 +253,10 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
   const [deletingToolId, setDeletingToolId] = useState<string | null>(null);
   const [togglingToolId, setTogglingToolId] = useState<string | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
+  const [validatingTool, setValidatingTool] = useState<Tool | null>(null);
+  const [toolValidationInput, setToolValidationInput] = useState("{}");
+  const [isValidatingToolInput, setIsValidatingToolInput] = useState(false);
+  const [toolValidationMessage, setToolValidationMessage] = useState<StatusMessage | null>(null);
 
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [previewVariables, setPreviewVariables] = useState(EMPTY_PREVIEW_VARIABLES);
@@ -671,6 +676,7 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setIsVersionComposerOpen(false);
     setIsToolComposerOpen(false);
     resetToolFields();
+    resetToolValidation();
     setComparingVersion(null);
     setActiveTab("versions");
   }
@@ -682,6 +688,12 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
     setToolInputSchema(DEFAULT_TOOL_INPUT_SCHEMA);
     setToolError(null);
     setEditingToolId(null);
+  }
+
+  function resetToolValidation() {
+    setValidatingTool(null);
+    setToolValidationInput("{}");
+    setToolValidationMessage(null);
   }
 
   function handleEditTool(tool: Tool) {
@@ -896,6 +908,42 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
       );
     } finally {
       setTogglingToolId(null);
+    }
+  }
+
+  async function handleValidateToolInput(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedProjectId || !validatingTool) {
+      return;
+    }
+
+    let input: Record<string, unknown>;
+
+    try {
+      const parsedInput = parseJsonObject(toolValidationInput, "tool input");
+      if (!parsedInput) {
+        throw new Error("tool input is required");
+      }
+      input = parsedInput;
+    } catch (error) {
+      setToolValidationMessage({ text: errorMessage(error, "Invalid tool input"), isError: true });
+      return;
+    }
+
+    setIsValidatingToolInput(true);
+    setToolValidationMessage(null);
+
+    try {
+      await validateToolInput(accessToken, selectedProjectId, validatingTool.id, input);
+      setToolValidationMessage({ text: "Input matches this tool's schema.", isError: false });
+    } catch (error) {
+      setToolValidationMessage({
+        text: errorMessage(error, "Tool input validation failed"),
+        isError: true,
+      });
+    } finally {
+      setIsValidatingToolInput(false);
     }
   }
 
@@ -1624,6 +1672,51 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
               {!isToolComposerOpen && toolError ? (
                 <p className="px-2.5 pb-2 font-mono text-xs text-destructive">{toolError}</p>
               ) : null}
+              {validatingTool ? (
+                <form
+                  className="mb-2 grid gap-2.5 rounded-xl border bg-card p-3"
+                  onSubmit={handleValidateToolInput}
+                >
+                  <div>
+                    <p className="m-0 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                      Validate input
+                    </p>
+                    <p className="mt-1 truncate font-mono text-xs">{validatingTool.slug}</p>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="console-tool-validation-input">JSON input</Label>
+                    <Textarea
+                      className="font-mono text-xs"
+                      disabled={isValidatingToolInput}
+                      id="console-tool-validation-input"
+                      onChange={(event) => {
+                        setToolValidationInput(event.target.value);
+                        setToolValidationMessage(null);
+                      }}
+                      rows={6}
+                      value={toolValidationInput}
+                    />
+                  </div>
+                  {toolValidationMessage ? (
+                    <p
+                      className={cn(
+                        "font-mono text-xs",
+                        toolValidationMessage.isError ? "text-destructive" : "text-emerald-600",
+                      )}
+                    >
+                      {toolValidationMessage.text}
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end gap-2">
+                    <Button onClick={resetToolValidation} size="sm" type="button" variant="ghost">
+                      Close
+                    </Button>
+                    <Button disabled={isValidatingToolInput} size="sm" type="submit">
+                      {isValidatingToolInput ? "Validating..." : "Validate"}
+                    </Button>
+                  </div>
+                </form>
+              ) : null}
               <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                 {tools.map((tool) => {
                   const properties = tool.inputSchema.properties;
@@ -1651,6 +1744,20 @@ export function ConsoleApp({ accessToken, user, onLogout }: ConsoleAppProps) {
                         </span>
                       </div>
                       <div className="flex opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                        <button
+                          aria-label={`Validate input for ${tool.name}`}
+                          className="grid size-[22px] place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"
+                          disabled={deletingToolId === tool.id || togglingToolId === tool.id}
+                          onClick={() => {
+                            setValidatingTool(tool);
+                            setToolValidationInput("{}");
+                            setToolValidationMessage(null);
+                          }}
+                          title="Validate tool input"
+                          type="button"
+                        >
+                          <Braces className="size-3" />
+                        </button>
                         <button
                           aria-label={`${tool.enabled ? "Disable" : "Enable"} ${tool.name}`}
                           className="grid size-[22px] place-items-center rounded-md text-muted-foreground hover:bg-background hover:text-foreground"

@@ -1,13 +1,18 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendToolError } from "../../shared/errors.js";
 import { requireUser } from "../../shared/http.js";
-import { createToolSchema, updateToolSchema } from "./tool.schema.js";
+import {
+  createToolSchema,
+  updateToolSchema,
+  validateRegisteredToolInputSchema,
+} from "./tool.schema.js";
 import {
   createToolForProject,
   deleteToolForProject,
   getToolForProject,
   listToolsForProject,
   updateToolForProject,
+  validateToolInputForProject,
 } from "./tool.service.js";
 
 type ProjectParams = {
@@ -142,6 +147,44 @@ export async function deleteToolController(
   try {
     await deleteToolForProject(user.id, request.params.projectId, request.params.toolId);
     return reply.code(204).send();
+  } catch (error) {
+    return sendToolError(reply, error);
+  }
+}
+
+export async function validateToolInputController(
+  request: FastifyRequest<{ Params: ToolParams }>,
+  reply: FastifyReply,
+) {
+  const user = requireUser(request, reply);
+
+  if (!user) {
+    return;
+  }
+
+  const parsedBody = validateRegisteredToolInputSchema.safeParse(request.body);
+
+  if (!parsedBody.success) {
+    return reply.code(400).send({
+      error: {
+        code: "INVALID_REQUEST_BODY",
+        message: "invalid request body",
+        issues: parsedBody.error.issues.map((issue) => ({
+          path: issue.path.length > 0 ? issue.path.join(".") : "/",
+          message: issue.message,
+        })),
+      },
+    });
+  }
+
+  try {
+    const result = await validateToolInputForProject(
+      user.id,
+      request.params.projectId,
+      request.params.toolId,
+      parsedBody.data.input,
+    );
+    return reply.code(200).send(result);
   } catch (error) {
     return sendToolError(reply, error);
   }

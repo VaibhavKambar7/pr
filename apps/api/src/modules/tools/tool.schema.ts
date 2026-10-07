@@ -99,5 +99,11 @@ export const updateToolSchema = z
     message: "at least one field is required",
   });
 
+export const validateRegisteredToolInputSchema = z
+  .object({
+    input: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
 export type CreateToolInput = z.infer<typeof createToolSchema>;
 export type UpdateToolInput = z.infer<typeof updateToolSchema>;

@@ -123,6 +123,16 @@ export function sendToolError(reply: FastifyReply, error: unknown) {
     return sendStructuredError(reply, 404, "TOOL_NOT_FOUND", error.message);
   }
 
+  if (error instanceof ToolInputValidationError) {
+    return sendStructuredError(
+      reply,
+      400,
+      "TOOL_INPUT_VALIDATION_FAILED",
+      error.message,
+      error.issues,
+    );
+  }
+
   return sendStructuredError(
     reply,
     500,

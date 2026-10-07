@@ -1,4 +1,5 @@
 import { getProjectForUser } from "../projects/project.service.js";
+import { validateToolInput } from "../../shared/tool-input-validation.js";
 import {
   createTool,
   deleteTool,
@@ -73,6 +74,18 @@ export async function getToolForProject(ownerId: string, projectId: string, tool
   }
 
   return tool;
+}
+
+export async function validateToolInputForProject(
+  ownerId: string,
+  projectId: string,
+  toolId: string,
+  input: Record<string, unknown>,
+) {
+  const tool = await getToolForProject(ownerId, projectId, toolId);
+  validateToolInput(tool.inputSchema as Record<string, unknown>, input);
+
+  return { tool, valid: true as const };
 }
 
 export async function updateToolForProject(

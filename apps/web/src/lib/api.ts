@@ -469,6 +469,22 @@ export function updateTool(
   });
 }
 
+export function validateToolInput(
+  accessToken: string,
+  projectId: string,
+  toolId: string,
+  input: Record<string, unknown>,
+) {
+  return requestWithAuth<{ tool: Tool; valid: true }>(
+    accessToken,
+    `/projects/${projectId}/tools/${toolId}/validate`,
+    {
+      method: "POST",
+      body: JSON.stringify({ input }),
+    },
+  );
+}
+
 export function revokeApiKey(accessToken: string, projectId: string, apiKeyId: string) {
   return requestWithAuth<void>(accessToken, `/projects/${projectId}/api-keys/${apiKeyId}`, {
     method: "DELETE",

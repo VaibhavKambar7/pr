@@ -6,6 +6,7 @@ import {
   getToolController,
   listToolsController,
   updateToolController,
+  validateToolInputController,
 } from "./tool.controller.js";
 
 export async function toolRoutes(app: FastifyInstance) {
@@ -15,5 +16,6 @@ export async function toolRoutes(app: FastifyInstance) {
   app.get("/:projectId/tools", listToolsController);
   app.get("/:projectId/tools/:toolId", getToolController);
   app.patch("/:projectId/tools/:toolId", updateToolController);
+  app.post("/:projectId/tools/:toolId/validate", validateToolInputController);
   app.delete("/:projectId/tools/:toolId", deleteToolController);
 }
