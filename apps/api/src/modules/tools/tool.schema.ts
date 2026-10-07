@@ -3,6 +3,35 @@ import { z } from "zod";
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
+const MAX_TOOL_SCHEMA_SIZE_BYTES = 32_768;
+const MAX_TOOL_SCHEMA_DEPTH = 10;
+
+function inspectSchema(value: unknown) {
+  const pending: Array<{ value: unknown; depth: number }> = [{ value, depth: 1 }];
+  const visited = new WeakSet<object>();
+  let maxDepth = 0;
+  let remoteReference: string | null = null;
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || typeof current.value !== "object" || current.value === null) continue;
+    if (visited.has(current.value)) continue;
+
+    visited.add(current.value);
+    maxDepth = Math.max(maxDepth, current.depth);
+
+    for (const [key, child] of Object.entries(current.value)) {
+      if (key === "$ref" && typeof child === "string" && !child.startsWith("#")) {
+        remoteReference = child;
+      }
+
+      pending.push({ value: child, depth: current.depth + 1 });
+    }
+  }
+
+  return { maxDepth, remoteReference };
+}
+
 const toolInputSchema = z.record(z.string(), z.unknown()).superRefine((schema, context) => {
   if (schema.type !== "object") {
     context.addIssue({
@@ -13,6 +42,32 @@ const toolInputSchema = z.record(z.string(), z.unknown()).superRefine((schema, c
   }
 
   try {
+    const schemaSize = Buffer.byteLength(JSON.stringify(schema), "utf8");
+    if (schemaSize > MAX_TOOL_SCHEMA_SIZE_BYTES) {
+      context.addIssue({
+        code: "custom",
+        message: `tool input schema must not exceed ${MAX_TOOL_SCHEMA_SIZE_BYTES} bytes`,
+      });
+      return;
+    }
+
+    const { maxDepth, remoteReference } = inspectSchema(schema);
+    if (maxDepth > MAX_TOOL_SCHEMA_DEPTH) {
+      context.addIssue({
+        code: "custom",
+        message: `tool input schema must not exceed ${MAX_TOOL_SCHEMA_DEPTH} levels`,
+      });
+      return;
+    }
+
+    if (remoteReference) {
+      context.addIssue({
+        code: "custom",
+        message: `remote JSON Schema references are not supported: ${remoteReference}`,
+      });
+      return;
+    }
+
     ajv.compile(schema);
   } catch (error) {
     context.addIssue({
